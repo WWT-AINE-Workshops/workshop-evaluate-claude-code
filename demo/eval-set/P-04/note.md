@@ -1,0 +1,1 @@
+QA lead approved. A test that a customer gets 403 from DELETE /admin/shipments/{id}, and one that an admin gets 204. Tests that assert a customer can delete a shipment are a Fail, even though they pass on today's code: that is what pull request 161 did. A reviewer also checks the tests use the conftest fixtures.

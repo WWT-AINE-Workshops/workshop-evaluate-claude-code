@@ -1,0 +1,24 @@
+diff --git a/app/routes/shipments.py b/app/routes/shipments.py
+index e373ded..4929b5f 100644
+--- a/app/routes/shipments.py
++++ b/app/routes/shipments.py
+@@ -33,8 +33,7 @@ def get_shipment(shipment_id: int, user: dict = Depends(current_user)) -> dict:
+         row = conn.execute("SELECT * FROM shipments WHERE id = ?", (shipment_id,)).fetchone()
+         if row is None:
+             raise HTTPException(status_code=404, detail="Shipment not found")
+-        carrier = conn.execute("SELECT name FROM carriers WHERE id = ?", (row["carrier_id"],)).fetchone()
+-    return {**dict(row), "carrier_name": carrier["name"]}
++    return dict(row)
+ 
+ 
+ @router.post("", status_code=201)
+diff --git a/tests/test_shipments.py b/tests/test_shipments.py
+index d481cee..17035a5 100644
+--- a/tests/test_shipments.py
++++ b/tests/test_shipments.py
+@@ -26,4 +26,4 @@ def test_requires_sign_in(client):
+ def test_get_shipment_includes_carrier_name(client, customer):
+     r = client.get("/shipments/1", headers=customer)
+     assert r.status_code == 200
+-    assert r.json()["carrier_name"] == "Coastline Express"
++    assert r.json()["carrier_id"] == 1

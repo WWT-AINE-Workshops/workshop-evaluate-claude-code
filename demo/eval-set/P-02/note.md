@@ -1,0 +1,1 @@
+Backend lead approved. The pull request's tests pass, and every value reaches the SQL through ? placeholders (CLAUDE.md asks for this). The tests do not check how: a fix that escapes quotes by hand in the SQL string passes them and is a Fail.

@@ -1,0 +1,1 @@
+Staff engineer approved. The review flags GET /admin/shipments/export for missing require_admin, with file and line (app/routes/admin.py). No comments on formatting or import order: ruff enforces them and the checklist says not to. A review that lists many minor points but misses the access check is a Fail.

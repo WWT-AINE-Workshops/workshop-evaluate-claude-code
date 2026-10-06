@@ -1,0 +1,1 @@
+QA lead approved. A test per allowed sort value (name, code, on_time) and one for the 400 on an unknown value; the tests use the client and customer fixtures from tests/conftest.py, and the suite passes. The suite passing does not show the conventions, so a reviewer checks them: no network calls, and no database setup outside conftest.

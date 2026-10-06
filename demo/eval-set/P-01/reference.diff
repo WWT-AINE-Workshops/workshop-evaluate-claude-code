@@ -1,0 +1,42 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b0e1648..f765698 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,8 @@ All notable changes to this project are documented in this file. The format foll
+ ## [Unreleased]
+ ### Added
+ - Carrier name on shipment lookup (`GET /shipments/{id}`).
++### Fixed
++- Shipment lookup no longer fails when no carrier is assigned yet (#142).
+ 
+ ## [1.4.0] - 2026-09-14
+ ### Added
+diff --git a/app/routes/shipments.py b/app/routes/shipments.py
+index e373ded..2e8a166 100644
+--- a/app/routes/shipments.py
++++ b/app/routes/shipments.py
+@@ -34,7 +34,7 @@ def get_shipment(shipment_id: int, user: dict = Depends(current_user)) -> dict:
+         if row is None:
+             raise HTTPException(status_code=404, detail="Shipment not found")
+         carrier = conn.execute("SELECT name FROM carriers WHERE id = ?", (row["carrier_id"],)).fetchone()
+-    return {**dict(row), "carrier_name": carrier["name"]}
++    return {**dict(row), "carrier_name": carrier["name"] if carrier else None}
+ 
+ 
+ @router.post("", status_code=201)
+diff --git a/tests/test_shipments.py b/tests/test_shipments.py
+index d481cee..2c03a32 100644
+--- a/tests/test_shipments.py
++++ b/tests/test_shipments.py
+@@ -27,3 +27,11 @@ def test_get_shipment_includes_carrier_name(client, customer):
+     r = client.get("/shipments/1", headers=customer)
+     assert r.status_code == 200
+     assert r.json()["carrier_name"] == "Coastline Express"
++
++
++def test_get_shipment_without_carrier(client, customer):
++    new = {"reference": "NW-1004", "recipient_name": "Lee Park", "destination": "Reno, NV"}
++    shipment_id = client.post("/shipments", json=new, headers=customer).json()["id"]
++    r = client.get(f"/shipments/{shipment_id}", headers=customer)
++    assert r.status_code == 200
++    assert r.json()["carrier_name"] is None

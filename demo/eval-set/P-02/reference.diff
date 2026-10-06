@@ -1,0 +1,47 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f765698..09d768c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file. The format foll
+ - Carrier name on shipment lookup (`GET /shipments/{id}`).
+ ### Fixed
+ - Shipment lookup no longer fails when no carrier is assigned yet (#142).
++- Shipment search no longer fails when the search text contains an apostrophe (#156).
+ 
+ ## [1.4.0] - 2026-09-14
+ ### Added
+diff --git a/app/routes/shipments.py b/app/routes/shipments.py
+index 2e8a166..469a8a3 100644
+--- a/app/routes/shipments.py
++++ b/app/routes/shipments.py
+@@ -19,11 +19,11 @@ class NewShipment(BaseModel):
+ def search_shipments(q: str, user: dict = Depends(current_user)) -> list[dict]:
+     sql = (
+         "SELECT id, reference, recipient_name, destination, status FROM shipments "
+-        f"WHERE customer_id = {user['id']} AND "
+-        f"(reference LIKE '%{q}%' OR recipient_name LIKE '%{q}%')"
++        "WHERE customer_id = ? AND (reference LIKE ? OR recipient_name LIKE ?)"
+     )
++    pattern = f"%{q}%"
+     with connect() as conn:
+-        rows = conn.execute(sql).fetchall()
++        rows = conn.execute(sql, (user["id"], pattern, pattern)).fetchall()
+     return [dict(r) for r in rows]
+ 
+ 
+diff --git a/tests/test_shipments.py b/tests/test_shipments.py
+index 2c03a32..e30299c 100644
+--- a/tests/test_shipments.py
++++ b/tests/test_shipments.py
+@@ -35,3 +35,11 @@ def test_get_shipment_without_carrier(client, customer):
+     r = client.get(f"/shipments/{shipment_id}", headers=customer)
+     assert r.status_code == 200
+     assert r.json()["carrier_name"] is None
++
++
++def test_search_with_apostrophe(client, customer):
++    new = {"reference": "NW-1005", "recipient_name": "Sean O'Brien", "destination": "Boston, MA"}
++    assert client.post("/shipments", json=new, headers=customer).status_code == 201
++    r = client.get("/shipments/search", params={"q": "O'Brien"}, headers=customer)
++    assert r.status_code == 200
++    assert [s["reference"] for s in r.json()] == ["NW-1005"]

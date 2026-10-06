@@ -1,0 +1,17 @@
+# OS and editor files
+.DS_Store
+.remember/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Office lock files
+~$*
+
+# Your own work belongs outside this repository (see WALKTHROUGH.md), but just in case:
+eval-set-*/
+outputs/
