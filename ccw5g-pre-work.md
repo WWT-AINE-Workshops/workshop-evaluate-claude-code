@@ -55,7 +55,7 @@ In this workshop your team turns work it has already merged into an evaluation s
 1. Create a folder called eval-set somewhere outside every git repository, for example in your home folder. On Windows, keep it inside WSL (your Ubuntu home folder), not on the Windows side or a network share, which the scripts handle badly. Each attendee who runs cases keeps their own copy, for their outputs.
 2. Save foundation-evaluation-tracker.xlsx and eval-run-settings.json in it, and create an empty outputs subfolder for the replies and diffs that runs produce.
 3. Inside eval-set, create one empty subfolder per pull request as you choose them in Step 3, named P-01, P-02, and so on.
-4. In the workshop, runs happen in a different folder, such as eval-runs in your home folder. Keep it apart from eval-set: never put one inside the other.
+4. In the workshop, runs happen in a different folder, such as nw-runs in your home folder. Keep it apart from eval-set: never put one inside the other.
 
 ### Example
 
@@ -171,8 +171,8 @@ Backend lead: bug fix from a closed issue. QA lead: unit tests for changed code.
 
 ### How to do it
 
-1. Get the workshop repository, as section 1.5 of its WALKTHROUGH.md describes, and run: bash templates/check-setup.sh. It checks git, Python, and Claude Code, changes nothing, and prints how to fix anything missing. Section 1 of the walkthrough explains each install step by step, for macOS, Linux, and Windows, and assumes no experience with terminals.
-2. Fix every line the check marks FIX, open a new terminal window, and run the check again until it says All set. Then run bash templates/check-setup.sh --live, which makes one tiny real call to Claude Code (a few cents) to prove you are signed in.
+1. Get the workshop repository, as section 1.5 of its WALKTHROUGH.md describes, and run: bash ~/ccw5g/templates/check-setup.sh. It checks git, Python, and Claude Code, changes nothing, and prints how to fix anything missing. Section 1 of the walkthrough explains each install step by step, for macOS, Linux, and Windows, and assumes no experience with terminals.
+2. Fix every line the check marks FIX, open a new terminal window, and run the check again until it says All set. Then run bash ~/ccw5g/templates/check-setup.sh --live, which makes one tiny real call to Claude Code (a few cents) to prove you are signed in.
 3. Clone each repository you will work on, or confirm that you can.
 4. In one clone, run git checkout --detach `<commit before>` for one of the collected pull requests, install the repository's dependencies the way its README says, and run its test suite with the command written in context.md. For a Python service, that is often: python3 -m venv .venv, then source .venv/bin/activate, then pip install -r requirements.txt. Detaching leaves your branches untouched.
 5. Note the exact test command. In the workshop it goes into --allowedTools, so Claude can run the tests without a permission prompt.

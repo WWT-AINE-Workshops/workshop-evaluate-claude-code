@@ -196,7 +196,7 @@ if [ "$LIVE" = 1 ]; then
   fi
 else
   echo
-  echo "  (Not checked: that you are signed in. Run  ./check-setup.sh --live  to check, at a cost of a few cents.)"
+  echo "  (Not checked: that you are signed in. Run  bash ~/ccw5g/templates/check-setup.sh --live  to check, at a cost of a few cents.)"
 fi
 
 echo

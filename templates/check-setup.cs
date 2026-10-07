@@ -61,21 +61,33 @@ else if (dockerOs != "linux")
     Fix($"Docker is running {dockerOs} containers", "The run image is a Linux image. In Docker Desktop, choose 'Switch to Linux containers'.");
 else
 {
-    Ok($"Docker {(await Capture("docker", "info", "--format", "{{.ServerVersion}}")).Trim()}, running Linux containers");
+    var dockerVersion = (await Capture("docker", "info", "--format", "{{.ServerVersion}}")).Trim();
+    Ok($"Docker {dockerVersion}, running Linux containers");
+    if (int.TryParse(dockerVersion.Split('.')[0], out var major) && major < 25)
+        Warn($"Docker {dockerVersion} runs the practice kit, but cases with \"services\" (such as a database) need Docker 25 or later.");
     var memGb = double.TryParse((await Capture("docker", "info", "--format", "{{.MemTotal}}")).Trim(), out var mem) ? mem / 1e9 : 0;
     if (memGb >= 6) Ok($"Docker can use {memGb:0} GB of memory");
     else Warn($"Docker can use {memGb:0.0} GB of memory. Three parallel runs build .NET and run Jest: give it 6 GB or more (Docker Desktop > Settings > Resources).");
     var image = $"ccw5g-eval-run:{TestedClaudeVersion}";
-    if ((await Capture("docker", "image", "inspect", "--format", "{{.Id}}", image)).Trim().StartsWith("sha256:")) Ok($"The run image {image} is built");
+    var builtFor = (await Capture("docker", "image", "inspect", "--format", "{{index .Config.Labels \"ccw5g.uid\"}}", image)).Trim();
+    var myUid = OperatingSystem.IsLinux() ? (await Capture("id", "-u")).Trim() : "1000";
+    var exists = (await Capture("docker", "image", "inspect", "--format", "{{.Id}}", image)).Trim().StartsWith("sha256:");
+    if (builtFor == myUid) Ok($"The run image {image} is built");
+    else if (exists) Ok($"The run image {image} is from an earlier version of the kit: run-case rebuilds it on first use (a few minutes)");
     else Ok($"The run image {image} is not built yet: run-case builds it on first use (a few minutes), or run this check with --live");
 }
 Console.WriteLine();
 
 Console.WriteLine("A credential for the runs (one you can revoke after the workshop)");
-string[] providers = ["CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY"];
+// In Claude Code's own order of precedence, as run-case uses them.
+string[] providers = ["CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"];
 var tokenFile = Path.Combine(home, ".config", "ccw5g", "claude-oauth-token");
 var fromEnv = providers.FirstOrDefault(n => Environment.GetEnvironmentVariable(n) is { Length: > 0 });
-if (fromEnv is not null) Ok($"{fromEnv} is set in this terminal, so run-case passes it to the containers");
+var useBedrock = Environment.GetEnvironmentVariable("CLAUDE_CODE_USE_BEDROCK") is { Length: > 0 };
+if (Environment.GetEnvironmentVariable("CLAUDE_CODE_USE_VERTEX") is { Length: > 0 })
+    Fix("CLAUDE_CODE_USE_VERTEX is set, but Google Cloud sign-in doesn't reach the run containers",
+        "Unset it in this terminal, and use a setup-token, an API key, Bedrock, or Foundry with an API key.");
+else if (fromEnv is not null) Ok($"{fromEnv} is set in this terminal, so run-case passes it to the containers");
 else if (File.Exists(tokenFile) && new FileInfo(tokenFile).Length > 0)
 {
     Ok($"A setup-token is saved in {tokenFile}");
@@ -87,7 +99,9 @@ else
         "Run:  claude setup-token     sign in, and copy the token it prints. Then save it (nothing appears as you paste):",
         windows ? "  New-Item -ItemType Directory -Force $HOME\\.config\\ccw5g | Out-Null; $t = Read-Host -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($t)) | Set-Content -NoNewline $HOME\\.config\\ccw5g\\claude-oauth-token; Remove-Variable t"
                 : "  mkdir -p ~/.config/ccw5g && chmod 700 ~/.config/ccw5g && read -rs T && printf '%s' \"$T\" > ~/.config/ccw5g/claude-oauth-token && unset T && chmod 600 ~/.config/ccw5g/claude-oauth-token",
-        "Or set ANTHROPIC_API_KEY, or your organization's Bedrock, Google Cloud or Foundry variables, in this terminal.");
+        "Or set ANTHROPIC_API_KEY, or your organization's Bedrock or Foundry variables, in this terminal.");
+if (!useBedrock && new[] { "AWS_ACCESS_KEY_ID", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK" }.Any(n => Environment.GetEnvironmentVariable(n) is { Length: > 0 }))
+    Ok("AWS credentials are set in this terminal; run-case keeps them out of the runs (it passes them only for Bedrock)");
 var hostClaude = Regex.Match(await Capture("claude", "--version"), @"\d+\.\d+\.\d+").Value;
 Ok(hostClaude.Length > 0 ? $"Claude Code {hostClaude} on this computer (the runs use {TestedClaudeVersion} inside the container)" : $"No Claude Code on this computer: not needed for the runs, which use {TestedClaudeVersion} inside the container");
 
@@ -97,13 +111,18 @@ if (live && fixes == 0)
     Console.WriteLine("Signing in from inside the run container (one tiny real call, a few cents)");
     var script = Path.Combine(Path.GetDirectoryName(Location())!, "eval-run.Dockerfile");
     var image = $"ccw5g-eval-run:{TestedClaudeVersion}";
-    if (!(await Capture("docker", "image", "inspect", "--format", "{{.Id}}", image)).Trim().StartsWith("sha256:"))
+    // The same build as run-case's: on Linux and WSL the image's user takes your uid.
+    var uid = OperatingSystem.IsLinux() ? (await Capture("id", "-u")).Trim() : "1000";
+    var gid = OperatingSystem.IsLinux() ? (await Capture("id", "-g")).Trim() : "1000";
+    if ((await Capture("docker", "image", "inspect", "--format", "{{index .Config.Labels \"ccw5g.uid\"}}", image)).Trim() != uid)
     {
         Console.WriteLine($"  Building {image} (once; a few minutes)...");
-        await Capture("docker", "build", "-q", "-t", image, "--build-arg", $"CLAUDE_VERSION={TestedClaudeVersion}", "-f", script, Path.GetDirectoryName(script)!);
+        await Capture("docker", "build", "-q", "-t", image, "--build-arg", $"CLAUDE_VERSION={TestedClaudeVersion}", "--build-arg", $"RUNNER_UID={uid}",
+            "--build-arg", $"RUNNER_GID={gid}", "-f", script, Path.GetDirectoryName(script)!);
     }
     var env = new Dictionary<string, string>();
-    foreach (var n in providers.Concat(["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "AWS_REGION", "AWS_DEFAULT_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID", "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL"]))
+    string[] bedrock = ["AWS_REGION", "AWS_DEFAULT_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK"];
+    foreach (var n in providers.Concat(["ANTHROPIC_BASE_URL", "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL"]).Concat(useBedrock ? bedrock : []))
         if (Environment.GetEnvironmentVariable(n) is { Length: > 0 } v) env[n] = v;
     if (fromEnv is null && File.Exists(tokenFile)) env["CLAUDE_CODE_OAUTH_TOKEN"] = File.ReadAllText(tokenFile).Trim();
     List<string> run = ["run", "--rm"];

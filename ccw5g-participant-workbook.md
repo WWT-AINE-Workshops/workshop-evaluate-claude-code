@@ -109,7 +109,7 @@ Two graders grade the same cases on the Calibration tab without discussing them:
 
 About 28 minutes. Take two cases each and run each three times, each run isolated, with run-case.sh or by hand. Record every run on the Runs tab, and read the diffs as well as grading them. Done when each of your cases has three graded runs on the Runs tab, or your group has agreed to step down to one run per case.
 
-1. Activate the repository's environment so its test command works. For a Python service: source .venv/bin/activate.
+1. Activate the repository's environment so its test command works. In the practice kit, source ~/ccw5g/templates/start.sh does it; for your own Python service, run source .venv/bin/activate in its folder.
 2. Fastest: run templates/run-case.sh once per case, as shown under One isolated run in the Reference section. It runs all three in parallel and prints rows to paste into the Runs tab. The steps below are what it does, for working by hand.
 3. Clone only the case branch, with no tags, into your runs folder, and remove its remote: git clone --no-local --single-branch --branch `<case-branch>` --no-tags `<repository>` `<runs>`/eval-`<case>`, then git -C `<runs>`/eval-`<case>` remote remove origin. Keep the runs folder apart from eval-set.
 4. Create a fresh worktree for each run: git -C `<runs>`/eval-`<case>` worktree add --detach `<runs>`/`<case>`-run-1.
@@ -226,6 +226,10 @@ About 15 minutes, together on screen. Record a decision for each target task on 
 - Hook: a command Claude Code runs automatically at a set moment, such as when a session starts.
 - MCP server: a connection that gives Claude Code tools for another system, such as an issue tracker.
 - Auto memory: notes Claude Code saves between sessions and reads back at the start of the next one.
+- Skill: a packaged set of instructions Claude Code loads for one kind of task, such as your team's testing conventions. Build a skill is one of the five decisions.
+- Clone: a copy of a git repository, with its history, in a folder of its own.
+- Branch: a named line of work in a repository. A case branch is one such name.
+- Diff: the lines a change adds and removes, as git diff shows them: + for added, - for removed.
 
 ### Further reading
 

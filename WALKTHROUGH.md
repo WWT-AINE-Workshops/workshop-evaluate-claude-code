@@ -170,8 +170,8 @@ ccw5gd-pre-work.docx  ccw5gd-pre-work.md  ccw5gd-slides.pptx
 ```
 
 - **On Windows, clone inside Ubuntu (WSL), in your home folder `~`**, not under `/mnt/c`. Files on the Windows side get changed in ways that break the scripts.
-- **If it says the repository isn't found, or asks for a username and password,** you need access to the WWT-AINE-Workshops organization first: ask your presenter. GitHub doesn't accept account passwords at that prompt, so use your GitHub username and a [personal access token](https://github.com/settings/tokens) as the password, or run `gh auth login` if you have GitHub's command-line tool.
-- **No git access at all?** On GitHub, choose **Code > Download ZIP**, unzip it into your home folder, and rename the folder to `ccw5g`. ZIP files can lose the "runnable" flag on scripts, so put the word `bash` in front of every script you run, for example `bash ~/ccw5g/templates/check-setup.sh`.
+- **If it says the repository isn't found, or asks for a username and password,** check the address for a typo: the repository is public, so it needs no account, and GitHub asks for a password when an address doesn't exist. Press `Ctrl + C` to stop the prompt, then copy the command again from above.
+- **No git access at all?** On GitHub, choose **Code > Download ZIP**, unzip it into your home folder, and rename the folder to `ccw5g`. ZIP files can lose the "runnable" flag on scripts. Once the folder is in place, give it back with one command: `chmod +x ~/ccw5g/templates/*.sh ~/ccw5g/demo/*/*.sh`.
   - **On Windows,** the ZIP lands in your Windows Downloads folder. Move it into Ubuntu's home folder from the Ubuntu window, replacing `<you>` with your Windows user name (look in `C:\Users` if unsure):
     ```bash
     sudo apt update && sudo apt install -y unzip
@@ -383,7 +383,7 @@ Your eleven commit codes (the first column) match these exactly. That tells you 
     rm -rf ~/nw-foundation/northwind-shipments-api ~/nw-foundation/eval-set
     ```
   - **`--verify needs pytest, ruff…`:** the virtual environment isn't switched on. Run `source ~/nw-foundation/.venv/bin/activate` and try again.
-  - **`FAIL` lines:** copy the first one into a message to your presenter. Don't carry on: later steps depend on this.
+  - **`FAIL` lines:** copy the first one into a message to your presenter, or, working on your own, look it up in [Troubleshooting](#12-troubleshooting). Don't carry on: later steps depend on this.
 
 ### 1.14 Copy the tracker
 
@@ -447,6 +447,7 @@ Then:
 2. On the **Exit Criteria** tab, set a target for each criterion **before any result exists**:
    - **Target-task pass rate, per task** (row 5): the percentage each target task must reach. The tracker judges every task against it separately, on the Summary tab.
    - **Share of cases passing every run** (row 6), the consistency bar, as a percentage.
+   - In rows 5 and 6, type just the number in **Target**, such as `80%`: the tracker's formulas compare it with your results. Put any words in **Notes**.
    - **Adoption** (rows 7–8), from Northwind's fictional week-1 analytics: 20 seats, 7 daily active users in week 1 (35%), and 9% of pull requests with Claude Code.
    - **Target tasks ready to expand** (row 9).
    - **Cost per developer per active day** (row 10). Northwind's week-1 cost was about $11; Anthropic's benchmark of about $13 sits in the Source column for comparison.
@@ -461,7 +462,7 @@ Then:
 
 ## 5. Exercise 2: Write cases from real work
 
-*Slides 12–15. About 24 minutes. Workbook Exercise 2 ([markdown](ccw5g-participant-workbook.md#exercise-2-write-cases-from-real-work) · [Word](ccw5g-participant-workbook.docx)). Tracker: **Eval Cases** tab.*
+*Slides 12–15. About 24 minutes; if you're new to git, write P-01, P-02, and P-06 in full and the other three in outline. Workbook Exercise 2 ([markdown](ccw5g-participant-workbook.md#exercise-2-write-cases-from-real-work) · [Word](ccw5g-participant-workbook.docx)). Tracker: **Eval Cases** tab.*
 
 > **Don't open `~/nw-foundation/eval-set/` yet.** It holds the finished cases, so it's the answer key for this exercise. Write your own first.
 
@@ -478,7 +479,7 @@ cd ~/nw-foundation/northwind-shipments-api
 git log --oneline --graph --decorate --all
 ```
 
-You should see this picture, newest work at the top. Each line is one change (a **commit**). The code in the first column identifies it, and the brackets show its labels.
+You should see this picture, newest work at the top. Each line is one change (a **commit**). The code in the first column identifies it, and the brackets show its labels. One line can mislead: `88974b5` shows `case/P-04` beside the apostrophe fix. That's because P-04's branch starts *from* that commit, the one before pull request 163. The fix's message says `#156`, the issue it fixed; its pull request is 158.
 
 ```text
 * dbb6768 (pr-171) docs: add carriers examples to docs/api.md (#171)
@@ -543,10 +544,11 @@ On the **Eval Cases** tab, write one row per case, **P-01 to P-06**:
 - Write **Must include** and **Must not** in words a reviewer could apply. Ask yourself what a bad fix could get away with.
 - Record any **weak output** with its case: the reverted, rejected, or wrong earlier attempt.
 - Fill in the **Automatable grader** column: the pull request's tests, the tests on the fixed code, or reviewer judgment.
+- The other columns: **Type** is *Capability* for all six (can Claude Code do this yet?). **Should Claude ask first?** is *Yes* for the ask-first case only. **Repository and commit** names the repository and its case branch, such as `northwind-shipments-api on case/P-01`.
 
 **Done when** six cases have a row each, naming their target task and reference.
 
-**Compare:** now open the finished cases: `ls ~/nw-foundation/eval-set/P-0*` (or browse [demo/python-fastapi/eval-set/](demo/python-fastapi/eval-set/)), and the table in [ANSWERS.md §2](demo/python-fastapi/ANSWERS.md#2-exercise-2-the-six-cases). Stop at the table: the notes after it give away Exercise 3. Each `request.md`, `context.md`, and `note.md` is one case. Rewrite any row where yours missed something a bad fix could get away with.
+**Compare:** now open the finished cases. Read each one with `cat ~/nw-foundation/eval-set/P-01/*.md`, changing `P-01` for each case (or browse [demo/python-fastapi/eval-set/](demo/python-fastapi/eval-set/)), and the table in [ANSWERS.md §2](demo/python-fastapi/ANSWERS.md#2-exercise-2-the-six-cases). Stop at the table: the notes after it give away Exercise 3. Each `request.md`, `context.md`, and `note.md` is one case. Rewrite any row where yours missed something a bad fix could get away with.
 
 > 🅱 **Track B:** write cases from the pull requests in your team's `eval-set` folder. Create the case branch for each, as [pre-work](ccw5g-pre-work.md) Step 3 describes.
 
@@ -581,7 +583,7 @@ Three cases have both a reference output and a weak one: **P-01, P-04, and P-06*
    ```
 
 2. On the **Calibration** tab, add one row per output: Case ID, Output graded (Weak or Reference), Grader A = you, Grader A verdict.
-3. Open [ANSWERS.md §3](demo/python-fastapi/ANSWERS.md#3-exercise-3-calibration). It plays **Grader B**. Enter its verdicts, and set "Both domain experts?" to **No**: the case is recorded as *Expert and presenter* until a second real expert confirms it.
+3. Open [ANSWERS.md §3](demo/python-fastapi/ANSWERS.md#3-exercise-3-calibration). It plays **Grader B**: for *Grader B (role)*, type `Answer key`. Enter its verdicts, and set "Both domain experts?" to **No**: the case is recorded as *Expert and presenter* until a second real expert confirms it.
 4. Where the verdicts differ, rewrite the case on the Eval Cases tab, and grade it again on a new Calibration row.
 
 - **Done when** every graded output has an agreed verdict or a rewritten case, and the agreement rate shows at the top right of the Calibration tab.
@@ -653,7 +655,7 @@ What the flags do:
 ```bash
 python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d['result']); print('model:', ', '.join(d.get('modelUsage', {})), '  cost: \$%.2f' % d['total_cost_usd'])" ~/nw-foundation/eval-set/outputs/P-01-run-1.json
 git diff > ~/nw-foundation/eval-set/outputs/P-01-run-1.diff
-git status --short
+git status --short | tee ~/nw-foundation/eval-set/outputs/P-01-run-1.status
 git -C ~/nw-foundation/northwind-shipments-api show pr-151-merged:tests/test_shipments.py > tests/test_shipments.py
 pytest -q
 less ~/nw-foundation/eval-set/outputs/P-01-run-1.diff
@@ -663,7 +665,7 @@ What each line does, and what you should see:
 
 - **The first line** prints Claude's own summary of what it did, then a line like `model: <the model name>   cost: $0.40`.
 - **`git diff`** saves Claude's change to a file.
-- **`git status --short`** lists the files changed, for example ` M app/routes/shipments.py` (` M` means "modified"). A line starting `??` is a **new** file that the diff leaves out: read it too.
+- **`git status --short`** lists the files changed (and `tee` saves the list too), for example ` M app/routes/shipments.py` (` M` means "modified"). A line starting `??` is a **new** file that the diff leaves out: read it too.
 - **The `git ... show` line** copies the merged pull request's tests into the run folder, replacing Claude's version of that file, so the team's own tests decide.
 - **`pytest -q`** runs the test suite. It ends with a line such as `13 passed`. If you see `failed`, the run did not fix the problem, or changed something it should not have.
 - **`less`** shows the diff: lines starting `+` are what Claude added, `-` what it removed. Press `q` to leave.
@@ -701,7 +703,22 @@ The first run lists a denied tool (Read or Bash) and says it couldn't read the f
 
 Passing once is not passing every time. A case that passes three times in four passes all three of three runs only about 42% of the time, so each case gets three runs. `run-case.sh` does everything in 7.1 for N runs in parallel and prints rows to paste into the Runs tab.
 
-Take **two cases** (the workshop's standard load): P-01, to finish the case you started, and one that contrasts with it, such as P-04. Each case's `context.md` file holds the exact command to run it. To run **any case's stored command** in one go, use the two lines below, changing `P-04` to the case you want. (The first line is only needed in a new terminal window.)
+Take **two cases** (the workshop's standard load): P-01, to finish the case you started, and one that contrasts with it, such as P-04.
+
+**First, P-01.** You already did run 1 by hand, so add runs 2 and 3:
+
+```bash
+run-case.sh --case P-01 --repo ~/nw-foundation/northwind-shipments-api --branch case/P-01 \
+  --request ~/nw-foundation/eval-set/P-01/request.md \
+  --test "pytest -q" --allow "Bash(pytest *),Bash(python -m pytest *)" \
+  --eval-set ~/nw-foundation/eval-set --runs-dir ~/nw-runs \
+  --reference-repo ~/nw-foundation/northwind-shipments-api --reference-ref pr-151-merged \
+  --reference-files tests/test_shipments.py --start 2 --runs 2
+```
+
+The script reuses P-01's clone from 7.1.
+
+**Then any other case.** Each case's `context.md` file holds the exact command to run it, three runs numbered 1 to 3. To run it in one go, use the two lines below, changing `P-04` to the case you want (not P-01: its runs 1 to 3 are done). The first line is only needed in a new terminal window.
 
 ```bash
 source ~/ccw5g/templates/start.sh
@@ -717,21 +734,8 @@ It starts three runs at once, prints `Started 3 run(s) of P-04…waiting…`, an
 | P-04 | Tests that must catch a bug | `--check-before`: Claude's tests on the buggy code (should fail), then on the fixed code (should pass) | The .diff: is there a 403 test for a customer? |
 | P-05, P-06 | Review | Nothing (review case) | The reply (.md): did it flag the export route (P-05), and did it ask which pull request (P-06)? |
 
-You already did P-01 run 1 by hand, so finish its three runs with runs 2 and 3:
-
-```bash
-run-case.sh --case P-01 --repo ~/nw-foundation/northwind-shipments-api --branch case/P-01 \
-  --request ~/nw-foundation/eval-set/P-01/request.md \
-  --test "pytest -q" --allow "Bash(pytest *),Bash(python -m pytest *)" \
-  --eval-set ~/nw-foundation/eval-set --runs-dir ~/nw-runs \
-  --reference-repo ~/nw-foundation/northwind-shipments-api --reference-ref pr-151-merged \
-  --reference-files tests/test_shipments.py --start 2 --runs 2
-```
-
-The script reuses P-01's clone from 7.1. For any other case, use the command from its `context.md` as it is: three runs, numbered 1 to 3.
-
-1. Paste the printed rows into the **Runs** tab. Select the copied text with your mouse in the terminal, copy it (`Cmd + C` on macOS, `Ctrl + Shift + C` in Linux or WSL), click cell **A** of the next empty row in the Runs tab (row 5 for your first), and paste (`Cmd/Ctrl + V`). Each value lands in its own column. The same rows are saved in `~/nw-foundation/eval-set/outputs/<case>-runs.tsv`, so you can open that file instead if selecting is awkward. The Verdict column is empty on purpose: you fill it in next. To open that file on WSL: `explorer.exe "$(wslpath -w ~/nw-foundation/eval-set/outputs)"` opens the folder.
-2. For each run, read its `.diff`, `.status`, and `.md` in `~/nw-foundation/eval-set/outputs/` (list them with `ls ~/nw-foundation/eval-set/outputs/`, open one with `less`, and press `q` to leave). Judge them against the case's Must include, Must not, and `note.md`, then type **Pass, Fail, or Can't tell** in the Verdict column. Passing tests are necessary, not sufficient. A run that edits a test to make it pass is a Fail.
+1. After each command, paste its rows into the **Runs** tab. `run-case.sh` has already copied them to your clipboard, without the header line: click cell **A** of the first empty row (row 6, just below your hand-run of P-01) and paste (`Cmd + V` on macOS, `Ctrl + V` on Windows). Each value lands in its own column. Don't select the rows in the terminal yourself: on Windows the terminal turns the gaps between columns into spaces, and everything lands in one cell. If the script says it couldn't use the clipboard, copy the rows from `~/nw-foundation/eval-set/outputs/<case>-runs.tsv` instead: on WSL, `notepad.exe "$(wslpath -w ~/nw-foundation/eval-set/outputs/P-04-runs.tsv)"` opens it, and you copy every line except the first. The Verdict column is empty on purpose: you fill it in next.
+2. For each run, read its `.diff`, `.status`, and `.md` (run 1 of P-01, done by hand, has a `.json` instead of a `.md`) in `~/nw-foundation/eval-set/outputs/` (list them with `ls ~/nw-foundation/eval-set/outputs/`, open one with `less`, and press `q` to leave). Judge them against the case's Must include, Must not, and `note.md`, then type **Pass, Fail, or Can't tell** in the Verdict column. Passing tests are necessary, not sufficient. A run that edits a test to make it pass is a Fail.
 3. While one case runs, read the last one's diffs. That's where you'll notice the things a verdict misses: put them in **What we noticed**.
 
 - **Done when** each of your cases has three graded runs on the Runs tab.
@@ -771,9 +775,11 @@ If you ran only a few cases, read your numbers as a first look, not a result: on
 
 *Slides 24–26. About 15 minutes, then a 5-minute readout. Workbook Exercise 5 ([markdown](ccw5g-participant-workbook.md#exercise-5-decide-and-hand-off) · [Word](ccw5g-participant-workbook.docx)). Tracker: **Decisions** and **Exit Criteria** tabs.*
 
-1. For each target task, choose **one** decision on the **Target Tasks** tab (Decision column), and record why on the **Decisions** tab, with an owner:
+1. For each target task, choose **one** decision on the **Target Tasks** tab (Decision column):
    - Ready to expand · Build a skill · Improve the brief or CLAUDE.md · Add a tool or MCP server · Out of scope
-2. On **Exit Criteria**, rows 5, 6, and 9 calculate themselves from your results. Fill in the measured value for the others. For Northwind's fictional analytics: daily active users 52%, pull requests with Claude Code 27%, cost $11. Where a criterion isn't met, write what would change the result in Notes.
+
+   Then add one row per task on the **Decisions** tab. Number them `G-01`, `G-02`, and so on. Put the reason, what Claude doesn't handle yet, in *What it does not handle yet*, the cases that showed it in *Found in*, then an owner and a target date.
+2. On **Exit Criteria**, rows 5 and 6 calculate fully from your results, and row 9 calculates its **Measured** value. For rows 7 to 10, type the Measured value where it's empty and choose **Met?** from the dropdown (Yes, No, or Not yet measured). Northwind's fictional week-4 analytics: daily active users 52%, pull requests with Claude Code 27%, cost $11. Where a criterion isn't met, write what would change the result in Notes.
 3. **Readout:** say out loud, or write down, the target tasks measured, the pass rate by task, the share of cases passing every run, which exit criteria are met, and the decision and owner for each task.
 
 - **Done when** every target task has one decision and an owner, and every exit criterion has a measured value or reads *Not yet measured*.
@@ -793,7 +799,7 @@ Everything above works the same on your own code. Your team prepares the inputs 
 | Northwind (Track A) | Your repositories (Track B) |
 |---|---|
 | `make-foundation-history.sh` builds the history and case files | Your coordinator collects merged pull requests into an `eval-set` folder (pre-work Steps 1–3) |
-| `case/P-0N` branches already exist | Create a case branch at each pull request's commit before, and push it (pre-work Step 3): `git branch case/P-01 <commit before> && git push origin case/P-01` |
+| `case/P-0N` branches already exist | Create a case branch at each pull request's commit before, and push it (pre-work Step 3): `git branch case/P-01 <commit before> && git push origin case/P-01`. Teammates who pass their own clone to `--repo` make it local first: `git branch case/P-01 origin/case/P-01` (run-case.sh tells you if you forget) |
 | `~/nw-foundation/eval-set` | Your team's `eval-set` folder, outside every repository |
 | `--repo ~/nw-foundation/northwind-shipments-api` | `--repo <your repository's clone URL or path>` |
 | `pytest -q` and `Bash(pytest *)` | Your repository's exact test command, in both `--test` and `--allow` |
@@ -811,12 +817,25 @@ Things to watch on real code:
 
 ## 11. Clean up
 
-Everything the workshop created is in two folders in your home folder. **Copy your tracker somewhere else first if you want to keep it**, because it lives inside the second folder. Then delete both: On WSL, `cp ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx /mnt/c/Users/<you>/Documents/` copies it to your Windows Documents folder.
+Everything the workshop created is in two folders in your home folder.
 
-```bash
-rm -rf ~/nw-runs
-rm -rf ~/nw-foundation
-```
+1. **Keep your tracker first**, if you want it: it lives inside `~/nw-foundation`, which the next step deletes. Copy it to your Documents folder. On macOS:
+
+   ```bash
+   cp ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx ~/Documents/
+   ```
+
+   On WSL, replacing `<you>` with your Windows user name:
+
+   ```bash
+   cp ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx /mnt/c/Users/<you>/Documents/
+   ```
+2. Then delete both folders:
+
+   ```bash
+   rm -rf ~/nw-runs
+   rm -rf ~/nw-foundation
+   ```
 
 `~/nw-runs` holds the clones and worktrees. `~/nw-foundation` holds the practice repository, the case files, the run outputs, and your tracker. (Deleting a folder removes the worktrees inside it.) To remove this repository too, delete `~/ccw5g` the same way.
 
@@ -827,7 +846,8 @@ rm -rf ~/nw-foundation
 | Symptom | Fix |
 |---|---|
 | `command not found: git`, `python3`, `claude` | The tool isn't installed, or this terminal can't find it. Run `bash ~/ccw5g/templates/check-setup.sh` and follow its `[FIX ]` lines, then open a new terminal window |
-| `Permission denied` when running a script | Put `bash` in front: `bash ~/ccw5g/templates/check-setup.sh`. (Scripts from a ZIP download lose their "runnable" flag) |
+| `Permission denied` when running a script | Scripts from a ZIP download lose their "runnable" flag. Give it back: `chmod +x ~/ccw5g/templates/*.sh ~/ccw5g/demo/*/*.sh`. Or put `bash` in front: `bash ~/ccw5g/templates/check-setup.sh` |
+| `... is only a remote branch` | Your clone has the case branch only as `origin/<branch>`. Run the `git branch` command the script prints, then run the case again |
 | The prompt doesn't start with `(.venv)`, or `pytest: command not found` | The practice virtual environment is off in this window. Run `source ~/ccw5g/templates/start.sh` |
 | `$PYTHON` is empty | No suitable Python was found. Do [1.7](#17-install-python), open a new window, and run `start.sh` again |
 | The screen shows `:` or `(END)` and nothing responds | You're in a pager. Press `q` |

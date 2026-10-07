@@ -20,12 +20,14 @@ Your answers don't have to match word for word. What matters is whether a review
 
 | Criterion | Northwind Dispatch's target |
 |---|---|
-| Target-task pass rate, per task | 80% for each target task |
+| Target-task pass rate, per task | 80% (each target task must reach it) |
 | Share of cases passing every run | 50% |
 | Daily active users against assigned seats | 85% by week 4, from 75% in week 1 |
 | Pull requests with Claude Code | 60% by week 4, from 48% in week 1 |
 | Target tasks ready to expand | 2 of 3 |
 | Cost per developer per active day | Under $25 on average (Anthropic's benchmark of about $13 for comparison) |
+
+In the tracker, type just the number in the Target column for rows 5 and 6 (`80%`, `50%`): the formulas compare it with the results. The others can be words.
 
 A team that has used Claude Code for a long time starts with high adoption, so adoption targets say little here. The quality criteria carry the decision.
 
@@ -71,7 +73,7 @@ Use these as **Grader B**. "Both domain experts?" is No: these cases are *Expert
 
 **The disagreements to expect.** If your D-02 case said only "fix the stale results", you may have passed the weak output: the debounce makes the bug rare, its tests are green, and the diff looks like a fix. In the fictional session the frontend lead failed it and the presenter passed it. The same happens on D-04 when the case says only "tests for the cancel endpoint". The fix is to **rewrite the case**, not to correct a grader: Must include now names the earlier request being dropped (D-02) and the customer's 403 (D-04). Grade the rewritten cases again on new Calibration rows.
 
-Northwind Dispatch's agreement rate: six of eight grades agreed, **75%**.
+Northwind Dispatch's agreement rate: six of eight grades agreed, **75%**, before the rewrites. Once you grade the rewritten D-02 and D-04 on new rows and the graders agree, the tracker shows eight of ten, **80%**. The mock tracker your presenter shows has the first eight rows only.
 
 ---
 
@@ -96,7 +98,7 @@ How to read it:
 - **D-02 run 1 is the one to dwell on:** its own tests passed, CI would have been green, and the run still failed. Passing tests are necessary, not sufficient.
 - **D-05 passed every run, and D-06 failed two of three.** Claude Code reviews well when it knows *what* to review. The gap is in the brief, not the review.
 - **These runs leave personal setup out.** Many of this team's engineers have their own CLAUDE.md and skills, so their everyday results may be better or worse. To measure the team's shared setup, commit it to the repository and run the cases again.
-- **How much to trust it:** two cases and six runs per target task is a first look, not a verdict. One run more or less moves a task's rate by about 17 points. Treat a task that clears its target by a run or two as a candidate, and grow its cases toward the twenty to fifty Anthropic calls a strong start before the expansion is final.
+- **How much to trust it:** even this full set, two cases and six runs per target task, is a first look, not a verdict. With the standard load of one case per task, one run moves a task's rate by about 33 points. One run more or less moves a task's rate by about 17 points. Treat a task that clears its target by a run or two as a candidate, and grow its cases toward the twenty to fifty Anthropic calls a strong start before the expansion is final.
 
 Likely fixes, as noted on the Decisions tab:
 

@@ -8,11 +8,11 @@ A step-by-step guide to **Claude Lab: Evaluate Claude Code on Your Own Work** fo
 **Who it's for:** engineers who are comfortable in a terminal, git, and their own stack. It runs on **Windows (PowerShell), WSL, macOS, and Linux**. For a guide that assumes no terminal experience, with a Python practice kit, see [WALKTHROUGH.md](WALKTHROUGH.md).
 
 **Time:** about 3 hours, the length of the workshop. Setup takes 15–30 minutes, most of it Docker and the first image build.
-**Cost:** Exercise 4 makes real Claude Code calls, billed to your organization's account. In testing, a practice run cost about $0.10 on Sonnet. Six runs (two cases, three runs each) is the workshop's standard load. Each run's JSON output reports its exact cost.
+**Cost:** Exercise 4 makes real Claude Code calls, billed to your organization's account. In testing, a practice run cost about $0.10 on Sonnet. The standard load is ten runs, about $1: one worked example, then one case per target task, three runs each. Each run's JSON output reports its exact cost.
 
 **A word you'll see throughout: the *foundation*.** It's the first group of engineers and target tasks your organization uses to prove Claude Code before rolling it out more widely, which Anthropic calls a pilot group. This workshop measures what the foundation can hand to Claude Code.
 
-**What's different from the Python kit.** Every run happens in its own **Docker container that sees only that run's clone**, so nothing a run executes can reach the answers. Each run also leaves your personal Claude Code setup out, so the baseline is the same for everyone. [Section 7](#7-exercise-4-run-the-baseline) explains both.
+**What's different from the Python kit.** Every run happens in its own **Docker container that sees only that run's clone**, so nothing a run executes can reach the answers on your computer, and the tests run with no network. Each run also leaves your personal Claude Code setup out, so the baseline is the same for everyone. [Section 7](#7-exercise-4-run-the-baseline) explains both, including what the containers *can* reach.
 
 ## Contents
 
@@ -60,10 +60,10 @@ You do this once, before the session. Commands use `$HOME`, which PowerShell, ba
 
 | You need | Why | Notes |
 |---|---|---|
-| **Windows 10/11, macOS 13+, or Linux**; WSL works too | Where you run the harness | Native Windows is fine: no WSL needed |
+| **Windows 10/11, macOS 13+, or Linux**; WSL works too | Where you run the harness | Native Windows is fine: no WSL needed. On WSL, keep every folder in your Linux home (`~`), not under `/mnt/c`, where file sharing into containers is very slow |
 | **git** 2.28 or later | Clones the practice history and each run | On Windows, also run `git config --global core.longpaths true` |
 | **.NET 10 SDK** | Runs the harness (`run-case.cs`) and the setup check | [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download). You don't need Node on your computer: the tests run inside the container |
-| **Docker** running **Linux containers**, with 6 GB of memory or more | Every run happens in its own container | Docker Desktop on Windows and macOS; Docker Engine, or Docker Desktop's WSL integration, on Linux and WSL |
+| **Docker** running **Linux containers**, with 6 GB of memory or more | Every run happens in its own container | Docker Desktop on Windows and macOS; Docker Engine, or Docker Desktop's WSL integration, on Linux and WSL. Version 25 or later if your Track B cases need a database ([§10](#10-track-b-doing-it-on-your-own-repositories)) |
 | About **8 GB of free disk** | The run image is about 2 GB; each run's clone about 400 MB while it runs | |
 | **Claude Code** 2.1.257 or later | To create the run credential (`claude setup-token`) | The runs use their own pinned copy inside the container |
 | A **credential for the runs** that you can revoke afterwards | Each container signs in with it | See [1.4](#14-create-a-credential-for-the-runs) |
@@ -103,9 +103,21 @@ Each run's container signs in on its own, with a credential passed in through th
   $t = Read-Host -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($t)) | Set-Content -NoNewline "$HOME\.config\ccw5g\claude-oauth-token"; Remove-Variable t
   ```
 - **An API key** your administrator issues for the workshop, in a Console workspace with a spend limit, which the administrator can disable afterwards. Set it in the terminal you run cases from: `export ANTHROPIC_API_KEY=…` in bash or zsh, `$env:ANTHROPIC_API_KEY = "…"` in PowerShell.
-- **Your organization's Amazon Bedrock, Google Cloud, or Microsoft Foundry setup.** Set its variables in that terminal. For Bedrock: `CLAUDE_CODE_USE_BEDROCK=1`, `AWS_REGION`, and **short-lived credentials** from your SSO login. `aws configure export-credentials --format env` (bash or zsh) or `--format powershell` (PowerShell) prints them, including `AWS_SESSION_TOKEN`, and they expire on their own. Your `~/.aws` profile isn't visible inside the container, so the credentials must be in the terminal's environment. If your organization pins models with `ANTHROPIC_MODEL` or `ANTHROPIC_DEFAULT_SONNET_MODEL` (for an inference profile), set those too: run-case passes them through.
+- **Your organization's Amazon Bedrock.** Use **short-lived credentials** from your SSO login, ideally for a role that can only invoke Bedrock models: code a run executes can use whatever the credentials allow. Your `~/.aws` profile isn't visible inside the container, so export them into the terminal you run cases from. They include `AWS_SESSION_TOKEN` and expire on their own:
 
-If more than one is set, the runs use the same order Claude Code does: a cloud provider, then `ANTHROPIC_AUTH_TOKEN`, then `ANTHROPIC_API_KEY`, then `CLAUDE_CODE_OAUTH_TOKEN`, then the token file. Every `run-case` prints the one it uses, as `Signing in with …`. Check it, especially if your terminal profile already sets an API key or Bedrock. On Windows, the token file sits in your profile folder, which only your account can read by default.
+  bash or zsh:
+  ```bash
+  export CLAUDE_CODE_USE_BEDROCK=1 AWS_REGION=us-east-1
+  eval "$(aws configure export-credentials --profile <your-profile> --format env)"
+  ```
+  PowerShell:
+  ```powershell
+  $env:CLAUDE_CODE_USE_BEDROCK = "1"; $env:AWS_REGION = "us-east-1"
+  aws configure export-credentials --profile <your-profile> --format powershell | Invoke-Expression
+  ```
+  If your organization pins models with `ANTHROPIC_MODEL` or `ANTHROPIC_DEFAULT_SONNET_MODEL` (for an inference profile), set those too: run-case passes them through. **Microsoft Foundry** works the same way with `CLAUDE_CODE_USE_FOUNDRY=1` and an API key in `ANTHROPIC_FOUNDRY_API_KEY`. Google Cloud's sign-in doesn't reach the containers, so it isn't supported here.
+
+If more than one is set, the runs use the same order Claude Code does: Bedrock or Foundry, then `ANTHROPIC_AUTH_TOKEN`, then `ANTHROPIC_API_KEY`, then `CLAUDE_CODE_OAUTH_TOKEN`, then the token file. Every `run-case` prints the one it uses, as `Signing in with …`. Check it, especially if your terminal profile already sets an API key or Bedrock. AWS variables reach the containers **only** when `CLAUDE_CODE_USE_BEDROCK` is set, so an AWS session you have open for other work stays out of the runs. On Windows, the token file sits in your profile folder, which only your account can read by default.
 
 Never paste a credential into a chat, a case, or a shared screen. The harness replaces any output file that contains it, and tells you to revoke it.
 
@@ -184,7 +196,7 @@ Copy-Item "$HOME\ccw5g\templates\eval-run-settings.json" "$HOME\nwd-foundation\e
 dotnet run --file "$HOME/ccw5g/templates/check-setup.cs" -- --live
 ```
 
-It builds `ccw5g-eval-run:2.1.285` the first time, which takes a few minutes. The image holds the .NET 10 SDK, Node 22, git, and Claude Code 2.1.285. It then makes one tiny real call from inside a container. You want `[ ok ]  Claude Code signs in inside the run container`.
+It builds `ccw5g-eval-run:2.1.285` the first time, which takes a few minutes. The image holds the .NET 10 SDK, Node 22, git, and Claude Code 2.1.285. On Linux and WSL, its user gets your user ID, so the containers can write to the clones you own. It then makes one tiny real call from inside a container. You want `[ ok ]  Claude Code signs in inside the run container`.
 
 ### 1.9 Copy the tracker
 
@@ -237,7 +249,7 @@ A good target task is work engineers do often, where a test or a reviewer can ju
 Then:
 
 1. For each task, write **What good output looks like** in one or two lines a reviewer would agree with. The repository's `CLAUDE.md`, `docs/review-checklist.md`, and `api.tests/DispatchApiFactory.cs` (in `$HOME/nwd-foundation/northwind-dispatch-portal`) are worth a look first.
-2. On the **Exit Criteria** tab, set a target for each criterion **before any result exists**. The pass-rate target (row 5) applies to each target task separately. Northwind Dispatch's fictional week-1 analytics: 24 seats, 18 daily active users (75%), 48% of pull requests with Claude Code, and about $16 per developer per active day.
+2. On the **Exit Criteria** tab, set a target for each criterion **before any result exists**. The pass-rate target (row 5) applies to each target task separately. In rows 5 and 6, type just the number, such as `80%`: the formulas compare it with the results. Words go in Notes. Northwind Dispatch's fictional week-1 analytics: 24 seats, 18 daily active users (75%), 48% of pull requests with Claude Code, and about $16 per developer per active day.
 
 - **Done when** three target tasks have a row each and every exit criterion has a target.
 - **Compare:** [ANSWERS.md §1](demo/dotnet-angular/ANSWERS.md#1-exercise-1-target-tasks-and-exit-criteria).
@@ -301,7 +313,7 @@ Four cases have both a reference output and a weak one: **D-01, D-02, D-04, and 
 
 1. Grade each reference and weak output against *your* Must include and Must not: Pass, Fail, or Can't tell.
 2. On the **Calibration** tab, add one row per output, with you as Grader A.
-3. Open [ANSWERS.md §3](demo/dotnet-angular/ANSWERS.md#3-exercise-3-calibration), which plays **Grader B**. Set "Both domain experts?" to **No**.
+3. Open [ANSWERS.md §3](demo/dotnet-angular/ANSWERS.md#3-exercise-3-calibration), which plays **Grader B**: type `Answer key` for *Grader B (role)*, enter its verdicts, and set "Both domain experts?" to **No**.
 4. Where verdicts differ, rewrite the case on the Eval Cases tab and grade it again on a new row.
 
 - **The lesson most people find here:** D-02's weak fix debounces the search. Its tests are green and the diff looks reasonable, so a case that says only "fix the stale results" lets it pass. The race is still there.
@@ -322,8 +334,10 @@ Anthropic has seen Claude gain an unfair advantage in its own evaluations by rea
 
 1. **The clone stops at the case branch.** Each run gets a single-branch clone with no tags and no remote, so the fix isn't in its history.
 2. **The run's container sees only that clone.** Claude Code's `permissions.blockReadsOutsideWorkingDirectories` refuses *Claude's own* reads outside the folder, but not the programs a run starts. In testing, a test file run by `npm test` read the answer key straight through it. A container that never mounts the eval set closes that gap: inside it, `$HOME/nwd-foundation` doesn't exist.
-3. **Your personal setup is left out.** Each run passes `--setting-sources project,local --strict-mcp-config --no-session-persistence`, and the settings file turns off hooks and auto memory. In testing, a user-level plugin wrote one run's results into the run folder, and its start-up hook fed them to the next run. These flags stop that, and they make every attendee's baseline the same. Your team's *shared* setup, committed to the repository, still loads.
-4. **The tests run in a separate container with no credential**, after Claude has finished.
+3. **Your personal setup is left out.** Each run passes `--setting-sources project,local --strict-mcp-config --no-session-persistence`, and the settings file turns off hooks and auto memory. In testing, a user-level plugin wrote one run's results into the run folder, and its start-up hook fed them to the next run. These flags stop that, and they make every attendee's baseline the same. From the repository, the run still loads `CLAUDE.md`, `.claude/skills`, `.claude/agents`, and the permissions in `.claude/settings.json`. It doesn't load the repository's MCP servers (`.mcp.json`) or hooks, and plugins it enables aren't installed. [Section 8](#8-reading-the-result) shows how to measure those too.
+4. **The tests run in a separate container with no credential and no network**, after Claude has finished.
+
+**What the containers can reach.** Claude's container needs the internet for the model API, and the setup container for package feeds. The settings deny Claude's `WebFetch`, `WebSearch`, `curl`, and `wget`, but code Claude runs could still reach the internet. That's why the credential is one you can revoke. For Track A it also means the answers are reachable in principle, since this repository is public; for your own cases (Track B) they aren't published anywhere.
 
 ### 7.1 One run, then look at what happened (case D-01)
 
@@ -350,7 +364,9 @@ On macOS it takes about a minute. On Windows, expect longer for the first run: `
 | `D-01-run-1.tests.txt` | The reference test run |
 | `D-01-runs.tsv` | The row to paste into the Runs tab |
 
-Judge the diff against `D-01/note.md`. Does a pending dispatch now return 200 with `driverName` null? Is the change confined to the lookup? Are existing tests untouched? Then paste the row into the **Runs** tab and type your verdict.
+Judge the diff against `D-01/note.md`. Does a pending dispatch now return 200 with `driverName` null? Is the change confined to the lookup? Are existing tests untouched?
+
+Then record it. `run-case` copies the row, without the header, to your clipboard: click cell **A5** on the **Runs** tab, paste, and type your verdict in the Verdict column. Don't copy rows from the terminal window: Windows Terminal turns the tabs into spaces, and everything lands in one cell. If `run-case` says it couldn't use the clipboard, open `outputs/D-01-runs.tsv` in a text editor and copy the lines below the header.
 
 ### 7.2 See the isolation for yourself (optional, no cost)
 
@@ -362,12 +378,15 @@ That's everything a run's container holds besides the toolchains: an empty `/wor
 
 ### 7.3 Three runs per case
 
-Passing once is not passing every time. A case that passes three times in four passes all three of three runs only about 42% of the time, so each case gets three runs. Finish D-01 with runs 2 and 3, then run one case that contrasts with it:
+Passing once is not passing every time. A case that passes three times in four passes all three of three runs only about 42% of the time, so each case gets three runs. Run one case for each target task, three runs each: an Angular bug fix, tests that must catch a bug, and a review where the right answer is a question.
 
 ```bash
-run-case --eval-set "$HOME/nwd-foundation/eval-set" --case D-01 --start 2 --runs 2
 run-case --eval-set "$HOME/nwd-foundation/eval-set" --case D-02
+run-case --eval-set "$HOME/nwd-foundation/eval-set" --case D-04
+run-case --eval-set "$HOME/nwd-foundation/eval-set" --case D-06
 ```
+
+Each takes a few minutes. In a live session, your presenter may split the cases between people instead.
 
 | Case | Kind | What run-case grades for you | What you still read |
 |---|---|---|---|
@@ -377,12 +396,13 @@ run-case --eval-set "$HOME/nwd-foundation/eval-set" --case D-02
 | D-04 | Tests that must catch a bug | Runs Claude's tests on the buggy code (should fail), then with the fixed controller (should pass) | The .diff: is there a 403 test for a customer? |
 | D-05, D-06 | Review | Nothing (review case) | The reply (.md): did it flag the export route (D-05), and did it ask which pull request (D-06)? |
 
-1. Paste the printed rows into the **Runs** tab (or open `outputs/<case>-runs.tsv`). The Verdict column is empty on purpose.
+1. After each command, paste its rows into the first empty row of the **Runs** tab, in column A, as in [7.1](#71-one-run-then-look-at-what-happened-case-d-01). The Verdict column is empty on purpose.
 2. Read each run's outputs and type **Pass, Fail, or Can't tell**. Passing tests are necessary, not sufficient: a run that edits a test to make it pass is a Fail.
 3. While one case runs, read the last one's diffs in a second terminal window: `run-case` holds the one it runs in. Note what a verdict misses in **What we noticed**.
 
-- **Done when** each of your cases has three graded runs on the Runs tab.
-- **Going further:** run all six cases, 18 runs. In testing, runs cost $0.06 to $0.11 each, so that's around $1.50.
+- **Done when** each target task has a case with three graded runs on the Runs tab.
+- **Going further:** finish D-01 (`--case D-01 --start 2 --runs 2`), then run D-03 and D-05: all six cases, 18 runs. In testing, runs cost $0.06 to $0.11 each, so that's around $1.50.
+- **If you stop a run** with Ctrl+C, `run-case` ends its containers and removes its clones. Its outputs stay in `outputs/`: move them aside before you run that case again.
 
 > 🅱 **Track B:** each case's `case.json` holds your repository's setup and test commands ([§10](#10-track-b-doing-it-on-your-own-repositories)). The command is the same.
 
@@ -407,9 +427,15 @@ Open the **Summary** tab. It calculates everything from your Eval Cases, Runs, a
 
 4. **Before you call anything a pass:** trace every file, method, and package in the output back to the repository. A changed test is still the most common way a bad fix gets through, and green CI is not a verdict.
 
-**These results leave personal setup out.** If your engineers rely on their own CLAUDE.md, skills, or MCP servers, their everyday results may differ. To measure the team's shared setup, commit it to the repository on a branch, point the cases at that branch, and run them again. The difference is the setup's measured value.
+**These results leave personal setup out.** If your engineers rely on their own CLAUDE.md, skills, or MCP servers, their everyday results may differ. To measure the team's *shared* setup, including the MCP servers and hooks the repository commits, run the same cases again with `--team-setup`:
 
-**How much six runs can tell you.** Two cases and six runs per target task is a first look, not a verdict: one run more or less moves a task's rate by about 17 points. Treat a task that clears its target by a run or two as a candidate, and grow its cases toward the twenty to fifty Anthropic calls a strong start before the expansion is final.
+1. Copy the eval set to a new folder beside it, such as `eval-set-team`, without its `outputs` folder, and put a fresh copy of the tracker in it. The comparison's rows then never mix with the baseline's.
+2. If the setup isn't on the case branches yet, commit it, then cherry-pick that commit onto each `case/*` branch: every case branch starts at a different commit.
+3. Run each case with `run-case --eval-set <the copy> --case <ID> --team-setup`. Its rows say *Team setup from the repository*.
+
+The difference between the two trackers is the setup's measured value. MCP servers that need a credential, such as a Jira server, have none inside the container, so they start without it.
+
+**How much these runs can tell you.** One case and three runs per target task is a first look, not a verdict: one run more or less moves a task's rate by about 33 points, and with all six cases by about 17. Treat a task that clears its target by a run or two as a candidate, and grow its cases toward the twenty to fifty Anthropic calls a strong start before the expansion is final.
 
 **Compare:** [ANSWERS.md §4](demo/dotnet-angular/ANSWERS.md#4-reading-the-result) walks through a full, fictional set of 18 runs on these six cases.
 
@@ -419,8 +445,8 @@ Open the **Summary** tab. It calculates everything from your Eval Cases, Runs, a
 
 *Slides 24–26. About 15 minutes, then a 5-minute readout. Workbook Exercise 5. Tracker: **Decisions** and **Exit Criteria** tabs.*
 
-1. For each target task, choose **one** decision on the **Target Tasks** tab, and record why on the **Decisions** tab, with an owner: Ready to expand · Build a skill · Improve the brief or CLAUDE.md · Add a tool or MCP server · Out of scope.
-2. On **Exit Criteria**, rows 5, 6, and 9 calculate themselves. Fill in the others. Northwind Dispatch's fictional week-4 analytics: daily active users 83%, pull requests with Claude Code 58%, cost $16 per developer per active day.
+1. For each target task, choose **one** decision on the **Target Tasks** tab: Ready to expand · Build a skill · Improve the brief or CLAUDE.md · Add a tool or MCP server · Out of scope. Then add a row on the **Decisions** tab: number it `G-01`, `G-02`, and so on; put what Claude doesn't handle yet (the reason) in *What it does not handle yet*, the cases that showed it in *Found in*, and an owner and a date.
+2. On **Exit Criteria**, rows 5 and 6 calculate fully, and row 9 calculates its Measured value. For rows 7 to 10, type the Measured value where it's missing and choose **Met?** from the dropdown. Northwind Dispatch's fictional week-4 analytics: daily active users 83%, pull requests with Claude Code 58%, cost $16 per developer per active day.
 3. **Readout:** the target tasks measured, the pass rate by task, the share of cases passing every run, which exit criteria are met, and the decision and owner for each task.
 
 - **Compare:** [ANSWERS.md §5](demo/dotnet-angular/ANSWERS.md#5-exercise-5-decisions).
@@ -439,14 +465,14 @@ Everything above works the same on your own code. Your team prepares the inputs 
 
 | Northwind Dispatch (Track A) | Your repositories (Track B) |
 |---|---|
-| The bundle builds the history | Your Bitbucket repository; push a case branch at each pull request's commit before: `git push origin <commit before>:refs/heads/case/<ID>`. Check first that a `case/*` branch won't start Bitbucket Pipelines or match a deployment rule; if it would, push the case branches to a fork |
+| The bundle builds the history | A full-history clone of your Bitbucket repository in a `repos` folder beside the eval set. Make each case branch **locally**, at the commit before the pull request: `git -C repos/<repository> branch case/<ID> <commit before>`. Nothing is pushed, so no Pipelines build starts. For an open pull request a review case needs, make a local branch from it too: `git -C repos/<repository> branch pr-<N> origin/<its branch>` |
 | `eval-set/D-0N/case.json` already written | Write one per case (below) |
 | `$HOME/nwd-foundation/eval-set` | Your team's `eval-set` folder, outside every repository |
 | The merged tests in the practice repository | `referenceRepo`: a full-history clone of your repository, kept **outside** `$HOME/eval-runs` |
 | Answer key in ANSWERS.md | Your domain experts, grading separately |
 | Fictional analytics | Your analytics dashboard (pre-work Step 4) |
 
-A `case.json` for a bug fix in your API, with a full-history clone of the repository in a `repos` folder beside the eval set (the reference files come from the same clone, so `referenceRepo` isn't needed):
+A `case.json` for a bug fix in your API, with the full-history clone in `repos` (the reference files come from the same clone, so `referenceRepo` isn't needed):
 
 ```json
 {
@@ -456,19 +482,35 @@ A `case.json` for a bug fix in your API, with a full-history clone of the reposi
   "request": "request.md",
   "setup": "dotnet restore Your.sln && npm --prefix client ci",
   "test": "dotnet test Your.sln --filter FullyQualifiedName~Orders",
-  "allow": ["Bash(dotnet test *)", "Bash(dotnet build *)"],
+  "allow": ["Bash(dotnet test)", "Bash(dotnet test *)", "Bash(dotnet build)", "Bash(dotnet build *)"],
   "referenceRef": "<merged commit or tag>",
   "referenceFiles": ["tests/Orders.Tests/OrderLookupTests.cs"]
 }
 ```
 
-Paths in `case.json` are relative to the eval-set folder. For a test-writing case, put the fixed source files in `referenceFiles` and add `"checkBefore": true`. For a review case, leave out `setup` and `test`, and allow read-only git (`Bash(git log *)`, `Bash(git show *)`, `Bash(git diff *)`). `repo` can be a clone URL, but a local full-history clone is faster: each run clones from it. For an "ask first" review case with several open pull requests, list their branches in `extraBranches`, and run-case copies them into each run's clone (as D-06 does).
+Paths in `case.json` are relative to the eval-set folder. Each `allow` rule matches a command with arguments (`*`) or without; list both forms, as the practice cases do. For a test-writing case, put the fixed source files in `referenceFiles` and add `"checkBefore": true`. For a review case, leave out `setup` and `test`, and allow read-only git (`Bash(git log *)`, `Bash(git show *)`, `Bash(git diff *)`). `repo` can be a clone URL, but a local full-history clone is faster: each run clones from it. `branch` and `extraBranches` must be local branches of that clone: if one is only `origin/<branch>`, run-case stops and prints the `git branch` command that fixes it. For an "ask first" review case with several open pull requests, list their branches in `extraBranches`, and run-case copies them into each run's clone (as D-06 does).
 
 Things to watch on real code:
 
-- **Tests that need SQL Server, Redis, or other services** can't start them inside the run container, which has no Docker of its own. Pick pull requests whose tests run in memory (SQLite, EF's in-memory provider, fakes), or grade those cases by review. Never put live connection strings or secrets in a case.
-- **Private package feeds** (CodeArtifact, Azure Artifacts, ProGet): give the credentials to the setup container only, never to Claude's. In `case.json`, `setupEnv` names environment variables to pass through, such as `"setupEnv": ["CODEARTIFACT_AUTH_TOKEN"]`. `setupFiles` mounts files read-only, such as `"setupFiles": {"nuget.config": "/home/runner/.nuget/NuGet/NuGet.Config"}` with the file kept in the eval set. Restored packages go to the shared package cache, which Claude's container reads but cannot change. If a run adds a new package, its restore fails without the feed: that's expected.
-- **AWS credentials stay out.** The containers don't see your `~/.aws`, so a run can't reach your AWS accounts. That's on purpose: keep it that way, and grade CloudFormation and infrastructure changes by review.
+- **Tests that need SQL Server, Redis, or other services:** prefer pull requests whose tests run in memory (SQLite, EF's in-memory provider, fakes): they're faster and need nothing else. When the tests need a real database, add `services` to the case. Each run gets its own copy, reachable by name from setup, Claude, and the test, and removed afterwards. `env` passes the connection string to all three:
+
+  ```json
+  "env": { "ConnectionStrings__Orders": "Server=db;Database=orders;User Id=sa;Password=Eval-only-Passw0rd;TrustServerCertificate=true" },
+  "services": {
+    "db": {
+      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "platform": "linux/amd64",
+      "env": { "ACCEPT_EULA": "Y", "MSSQL_SA_PASSWORD": "Eval-only-Passw0rd" },
+      "ready": "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\""
+    }
+  }
+  ```
+
+  run-case waits up to three minutes for the `ready` command to succeed. Use throwaway passwords only: everything in `env` is visible to the run. Each SQL Server takes about 2 GB of memory, so three parallel runs need Docker set to 8 GB or more. SQL Server has no Arm image: on an Apple Silicon Mac, turn on *Use Rosetta for x86_64/amd64 emulation* in Docker Desktop's settings, or it crashes on start. Services need Docker 25 or later.
+- **Tests that need the network:** the test container has none, so a test that calls an external service fails. Add `"testNetwork": true` to the case if that's intended.
+- **Angular tests with Karma:** the default for `ng test` needs a browser. Add `"browser": true` to `eval-run.json`: run-case then builds a second image, `ccw5g-eval-run:2.1.285-browser`, with headless Chromium, and points `CHROME_BIN` at it. Use `"test": "npx ng test --watch=false --browsers=ChromeHeadless"`. Jest and Vitest need neither.
+- **Private package feeds** (CodeArtifact, Azure Artifacts, ProGet): give the credentials to the setup container only, never to Claude's. In `case.json`, `setupEnv` names environment variables to pass through, such as `"setupEnv": ["CODEARTIFACT_AUTH_TOKEN"]`. `setupFiles` mounts files read-only, such as `"setupFiles": {"nuget.config": "/home/runner/.nuget/NuGet/NuGet.Config"}` with the file kept in the eval set. The leak scan covers both: the variables' values, and the passwords and tokens in the files. Restored packages go to the shared package cache, which Claude's container reads but cannot change. If a run adds a new package, its restore fails without the feed: that's expected.
+- **AWS credentials stay out** unless you sign in through Bedrock. The containers don't see your `~/.aws`, and run-case passes AWS variables only when `CLAUDE_CODE_USE_BEDROCK` is set: then use a role that can only invoke Bedrock models ([1.4](#14-create-a-credential-for-the-runs)). Grade CloudFormation and infrastructure changes by review.
 - **Jira:** use the issue text as the request. If a failure shows Claude needed the issue's history or comments, that's evidence for *Add a tool or MCP server*.
 - **Large solutions:** use a `test` command that runs only the affected projects, and keep `allow` matching it.
 - Your code stays with your team. Nothing is sent to WWT.
@@ -477,14 +519,15 @@ Things to watch on real code:
 
 ## 11. Clean up
 
-Copy your tracker somewhere else first if you want to keep it: it lives inside `$HOME/nwd-foundation`. Then:
+1. **Keep your tracker first.** It lives inside `$HOME/nwd-foundation/eval-set`, which the next step deletes, so copy it somewhere else, such as your Documents folder.
+2. Remove the run images and the package caches (the same in bash, zsh, and PowerShell):
 
-```bash
-docker image rm ccw5g-eval-run:2.1.285
-docker volume rm ccw5g-nuget ccw5g-npm
-```
-
-Delete the `$HOME/nwd-foundation` and `$HOME/eval-runs` folders (`rm -rf` in bash or zsh, `Remove-Item -Recurse -Force` in PowerShell), and **revoke the credential** you created for the runs.
+   ```bash
+   docker image rm $(docker image ls -q ccw5g-eval-run)
+   docker volume rm $(docker volume ls -q --filter name=ccw5g-)
+   ```
+3. Delete the `$HOME/nwd-foundation` and `$HOME/eval-runs` folders (`rm -rf` in bash or zsh, `Remove-Item -Recurse -Force` in PowerShell).
+4. **Revoke the credential** you created for the runs.
 
 ---
 
@@ -494,10 +537,16 @@ Delete the `$HOME/nwd-foundation` and `$HOME/eval-runs` folders (`rm -rf` in bas
 |---|---|
 | `run-case: command not found`, or not recognized | Put the templates folder on your PATH ([1.5](#15-put-run-case-on-your-path)), or run `dotnet run --file "$HOME/ccw5g/templates/run-case.cs" -- <options>` |
 | `Docker isn't running` | Start Docker Desktop (or the Docker service) and wait until it's ready |
-| `no credential for the runs` | Save a setup-token ([1.4](#14-create-a-credential-for-the-runs)), or set `ANTHROPIC_API_KEY` or your cloud provider's variables in this terminal |
+| `no credential for the runs` | Save a setup-token ([1.4](#14-create-a-credential-for-the-runs)), or set `ANTHROPIC_API_KEY` or your Bedrock or Foundry variables in this terminal |
 | A row says `Run failed`, and the `.stderr` mentions sign-in or 401 | The credential has expired or been revoked. Make a new one and run `check-setup.cs --live` |
 | A row says `Setup failed` | Read `<case>-run-N.setup.txt`. Usually a package feed the container can't reach |
-| `cloning case/D-0N ... failed` | The practice repository has only `main`: run the `fetch` line in [1.7](#17-build-the-practice-repository) |
+| `Setup failed`, and the log says `Permission denied` (Linux or WSL) | The run image was built for another user ID. Remove it (`docker image rm ccw5g-eval-run:2.1.285`) and run again: run-case rebuilds it for you |
+| `branch case/D-0N not found` | The practice repository has only `main`: run the `fetch` line in [1.7](#17-build-the-practice-repository) |
+| `case/B-01 is only a remote branch` | Your clone has the branch only as `origin/case/B-01`. Run the `git branch` command run-case prints, then run the case again |
+| `... already exists. Remove it first` | A clone was left from a run that crashed. Delete that folder in `$HOME/eval-runs` |
+| A row says `Service db wasn't ready` | Read `<case>-run-N.services.txt`. On an Apple Silicon Mac, SQL Server needs Docker Desktop's Rosetta setting ([§10](#10-track-b-doing-it-on-your-own-repositories)); otherwise give Docker more memory |
+| Karma: `No binary for ChromeHeadless`, or `CHROME_BIN` not set | Add `"browser": true` to `eval-run.json` ([§10](#10-track-b-doing-it-on-your-own-repositories)) |
+| `Google Cloud sign-in doesn't reach the run containers` | Unset `CLAUDE_CODE_USE_VERTEX`, and use another credential from [1.4](#14-create-a-credential-for-the-runs) |
 | `... already exists. Move earlier outputs aside` | That run number has outputs. Use `--start` with the next number, or move the old files out of `outputs/` |
 | `--runs-dir must be outside the eval set` | Keep `$HOME/eval-runs` and the eval set apart, never one inside the other |
 | A row starts `CREDENTIAL FOUND IN OUTPUT` | Code in the run printed the credential. The file was replaced. **Revoke the credential now** and create a new one |

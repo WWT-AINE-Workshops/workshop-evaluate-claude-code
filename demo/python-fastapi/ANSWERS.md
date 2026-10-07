@@ -20,12 +20,14 @@ Your answers don't have to match word for word. What matters is whether a review
 
 | Criterion | Northwind's target |
 |---|---|
-| Target-task pass rate, per task | 80% for each target task |
+| Target-task pass rate, per task | 80% (each target task must reach it) |
 | Share of cases passing every run | 50% |
 | Daily active users against assigned seats | 60% by week 4, from 35% in week 1 |
 | Pull requests with Claude Code | 25% by week 4, from 9% in week 1 |
 | Target tasks ready to expand | 2 of 3 |
 | Cost per developer per active day | Under $20 on average (Anthropic's benchmark of about $13 for comparison) |
+
+In the tracker, type just the number in the Target column for rows 5 and 6 (`80%`, `50%`): the formulas compare it with the results. The others can be words.
 
 Check your own: could each of your targets be measured, and is each one a number or a count, not "good"?
 
@@ -68,7 +70,7 @@ Use these as **Grader B**. "Both domain experts?" is No: these cases are *Expert
 
 **The disagreement to expect.** If your P-04 case said only "tests for the admin delete endpoint", you probably passed the weak output: its tests *do* test the endpoint, and they pass. In the fictional Northwind session, the QA lead failed it and the presenter passed it, for exactly this reason. The fix is to **rewrite the case**, not to correct a grader: Must include now requires a 403 for a customer. Grade the rewritten case again on a new Calibration row.
 
-Northwind's agreement rate: five of six grades agreed, **83%**.
+Northwind's agreement rate: five of six grades agreed, **83%**, before the rewrite. Once you grade the rewritten P-04 on its new row and the graders agree, the tracker shows six of seven, **86%**. The mock tracker your presenter shows has the first six rows only.
 
 ---
 

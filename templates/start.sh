@@ -16,7 +16,7 @@ KIT="$(dirname "$_ccw5g_dir")"
 export KIT
 export GIT_PAGER=cat
 case ":$PATH:" in *":$_ccw5g_dir:"*) ;; *) export PATH="$_ccw5g_dir:$PATH" ;; esac
-if _ccw5g_py="$("$_ccw5g_dir/check-setup.sh" --print-python 2>/dev/null)" && [ -n "$_ccw5g_py" ]; then
+if _ccw5g_py="$(bash "$_ccw5g_dir/check-setup.sh" --print-python 2>/dev/null)" && [ -n "$_ccw5g_py" ]; then
   export PYTHON="$_ccw5g_py"
 else
   unset PYTHON

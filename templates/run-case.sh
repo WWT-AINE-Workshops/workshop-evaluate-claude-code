@@ -163,6 +163,16 @@ if [ -d "$CLONE" ]; then
   [ -z "$(g -C "$CLONE" remote)" ] || die "$CLONE exists and has a remote. Remove it first."
   echo "Using existing clone $CLONE"
 else
+  # A clone copies only local branches: a branch someone else pushed is only origin/<branch> in your own clone.
+  if [ -d "$REPO" ]; then
+    for b in $BRANCH $EXTRA; do
+      g -C "$REPO" rev-parse --verify --quiet "refs/heads/$b" >/dev/null && continue
+      if g -C "$REPO" rev-parse --verify --quiet "refs/remotes/origin/$b" >/dev/null; then
+        die "$b is only a remote branch (origin/$b) in $REPO. Make it a local branch first:  git -C \"$REPO\" branch $b origin/$b"
+      fi
+      die "branch $b not found in $REPO"
+    done
+  fi
   g clone --quiet --no-local --single-branch --branch "$BRANCH" --no-tags "$REPO" "$CLONE"
   for b in $EXTRA; do
     if ! g -C "$CLONE" fetch --quiet --no-tags origin "refs/heads/$b:refs/heads/$b"; then
@@ -274,7 +284,25 @@ if [ "$KEEP" = 0 ]; then g -C "$CLONE" worktree prune; fi
 echo
 cat "$TSV"
 echo
-echo "Rows saved to $TSV (paste them into the Runs tab)."
+echo "Rows saved to $TSV."
+# The rows without the header, on the clipboard. Windows' clip.exe reads the console code page, so text with
+# non-ASCII characters is left for you to copy.
+ROWS="$(tail -n +2 "$TSV")"
+COPIED=0
+if command -v pbcopy >/dev/null 2>&1; then
+  printf '%s\n' "$ROWS" | pbcopy && COPIED=1
+elif command -v clip.exe >/dev/null 2>&1; then
+  if ! printf '%s' "$ROWS" | LC_ALL=C grep -q '[^ -~	]'; then printf '%s\n' "$ROWS" | sed 's/$/\r/' | clip.exe && COPIED=1; fi
+elif command -v wl-copy >/dev/null 2>&1; then
+  printf '%s\n' "$ROWS" | wl-copy && COPIED=1
+elif command -v xclip >/dev/null 2>&1; then
+  printf '%s\n' "$ROWS" | xclip -selection clipboard && COPIED=1
+fi
+if [ "$COPIED" = 1 ]; then
+  echo "The rows, without the header, are on your clipboard: click cell A of the first empty row in the Runs tab, and paste."
+else
+  echo "Copy the rows below the header line into the first empty row of the Runs tab, starting in column A."
+fi
 if [ "$KEEP" = 1 ]; then echo "Worktrees kept in $RUNSDIR."; fi
 if [ -z "$TEST" ]; then
   echo "Grade each run: read the reply (.md) against note.md, check Must include / Must not, then type the verdict in the Runs tab."

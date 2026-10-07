@@ -107,13 +107,13 @@ Two graders grade the same cases on the Calibration tab without discussing them:
 
 ## Exercise 4: Run the baseline
 
-About 28 minutes. Take two cases each and run each three times with run-case, each run in its own container on its own clone. Record every run on the Runs tab, and read the diffs as well as grading them. Done when each of your cases has three graded runs on the Runs tab, or your group has agreed to step down to one run per case.
+About 28 minutes. Take one case per target task and run each three times with run-case, each run in its own container on its own clone. Record every run on the Runs tab, and read the diffs as well as grading them. Done when each of your cases has three graded runs on the Runs tab, or your group has agreed to step down to one run per case.
 
 1. Check eval-run.json names the model your team uses day to day. Every run uses it, and every row records it.
 2. Run each case with: run-case --eval-set `<eval-set>` --case `<case>`. It reads the case's case.json, runs all three in parallel, and prints rows to paste into the Runs tab. The steps below are what it does.
 3. For each run, it clones only the case branch, with no tags, and removes the remote, so the merged fix is not in the clone's history. The clones live in a runs folder kept apart from eval-set.
 4. It restores the packages in a setup container, then runs the request exactly as written with claude -p in a fresh container that sees only that clone, with the eval-run settings, --setting-sources project,local, --strict-mcp-config, --no-session-persistence, the case's allowed tools, and the model from eval-run.json.
-5. It saves the reply, the diff, and git status to the outputs folder, copies in the pull request's tests, and runs the suite in a container that has no credential.
+5. It saves the reply, the diff, and git status to the outputs folder, copies in the pull request's tests, and runs the suite in a container that has no credential and no network. It copies the rows to your clipboard: paste them into the first empty row of the Runs tab, in column A.
 6. Record the verdict: grade against Must include and Must not, Pass, Fail, or Can't tell. Choose Can't tell when the verdict depends on something the case does not say. The row already has the Claude Code version, the model, the cost, and the duration.
 7. Note anything you saw in the diff that the verdict does not capture. If a row says the credential was found in an output, revoke it before the next run.
 
@@ -224,6 +224,10 @@ About 15 minutes, together on screen. Record a decision for each target task on 
 - Hook: a command Claude Code runs automatically at a set moment, such as when a session starts.
 - MCP server: a connection that gives Claude Code tools for another system, such as an issue tracker.
 - Auto memory: notes Claude Code saves between sessions and reads back at the start of the next one.
+- Skill: a packaged set of instructions Claude Code loads for one kind of task, such as your team's testing conventions. Build a skill is one of the five decisions.
+- Clone: a copy of a git repository, with its history, in a folder of its own.
+- Branch: a named line of work in a repository. A case branch is one such name.
+- Diff: the lines a change adds and removes, as git diff shows them: + for added, - for removed.
 
 ### Further reading
 

@@ -108,7 +108,7 @@ eval-set/B-02/   ...
 
 1. For each target task, pick two or three recent pull requests the team merged and was happy with, preferably ones that came from an issue and added or changed a test.
 2. In a clone, git rev-parse `<merged commit>`^ gives the commit before the pull request, where the merged commit is the merge or squash commit your Git host shows. If it was rebased in as several commits, use the parent of the first.
-3. Create a case branch at that commit and push it to your repository, so every attendee can clone it: git push origin `<commit before>`:refs/heads/case/B-01. In the workshop, each run's clone stops at this branch, so the merged fix is not in its history. Check first that a case/\* branch won't start Bitbucket Pipelines or match a deployment rule; if it would, push the case branches to a fork.
+3. Keep a full-history clone of the repository in a repos folder beside eval-set, and create the case branch in it, at that commit: git -C repos/`<repository>` branch case/B-01 `<commit before>`. Nothing is pushed, so no Bitbucket Pipelines build starts. Share the repos and eval-set folders with your team the same way. In the workshop, each run's clone stops at this branch, so the merged fix is not in its history. For an open pull request a review case needs, make a local branch from it too: git -C repos/`<repository>` branch pr-`<N>` origin/`<its branch>`.
 4. Create a subfolder B-01, B-02, and so on for each, and save the files in the table below. case.json holds the case's setup and test commands for run-case; section 10 of WALKTHROUGH-dotnet.md has an example. git diff --output=reference.diff `<commit before>` `<merged commit>` saves the change (use --output rather than >: in Windows PowerShell 5.1, > writes the file as UTF-16); git diff --stat lists the files it touched.
 5. Save any earlier Claude Code change for the same work that was reverted, reworked, or rejected as weak.diff, or as weak.md for a review or other prose. For a review case, save the review the team acted on as reference.md. Note any vague request that went wrong, such as "Review this" with two pull requests open: it becomes a case where Claude should ask first.
 6. Remove secrets and confidential data from every file, replacing each with a placeholder such as `<API_KEY>`. Confirm with the repository owner that the repository holds no live secrets at the commit before; if it does, choose another pull request.
@@ -181,7 +181,7 @@ Backend lead: bug fix from a Jira issue. QA lead: unit tests for changed code. S
 
 **Done when.** The check says All set, including the live check, and each attendee has confirmed the setup and test commands for one in-scope repository.
 
-**If you get stuck.** If the runs cannot sign in, ask your Claude administrator for a seat that includes Claude Code, or for a workshop API key. If Docker is not allowed on a company laptop, ask your IT team, or use another computer. If a suite needs SQL Server, Redis, other services, or secrets, choose a pull request whose tests run without them, or grade that case by review. If packages come from a private feed, prefer cases that restore from public feeds. In a large solution, note the command that runs only the affected projects' tests.
+**If you get stuck.** If the runs cannot sign in, ask your Claude administrator for a seat that includes Claude Code, or for a workshop API key. If Docker is not allowed on a company laptop, ask your IT team, or use another computer. If a suite needs SQL Server, Redis, or other services, prefer a pull request whose tests run without them; otherwise give the case a services entry (section 10 of WALKTHROUGH-dotnet.md). Never put live secrets or connection strings in a case. If packages come from a private feed, give the feed credentials to the setup container with setupEnv or setupFiles (section 10). In a large solution, note the command that runs only the affected projects' tests.
 
 ## Where to put it
 
@@ -218,7 +218,7 @@ No. The folder and the repositories stay with your team, and nothing is sent to 
 
 **What will the runs cost?**
 
-Each run is a real model call on your plan or API account. Expect about six runs per attendee in the session: in testing, a practice run cost about $0.10, so well under $1 per attendee. Each run's output reports its cost, and the tracker records it. Anthropic's benchmark from enterprise deployments is about $13 per developer per active day.
+Each run is a real model call on your plan or API account. Expect about ten runs per attendee in the session: in testing, a practice run cost about $0.10, so about $1 per attendee. Each run's output reports its cost, and the tracker records it. Anthropic's benchmark from enterprise deployments is about $13 per developer per active day.
 
 **Can we use Claude Code to find the pull requests?**
 
