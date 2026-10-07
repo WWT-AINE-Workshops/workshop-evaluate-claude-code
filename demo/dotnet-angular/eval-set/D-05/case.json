@@ -1,0 +1,12 @@
+{
+  "case": "D-05",
+  "repo": "../northwind-dispatch-portal",
+  "request": "request.md",
+  "branch": "case/D-05",
+  "allow": [
+    "Bash(git log *)",
+    "Bash(git show *)",
+    "Bash(git diff *)",
+    "Bash(git branch *)"
+  ]
+}

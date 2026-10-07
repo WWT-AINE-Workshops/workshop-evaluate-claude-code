@@ -1,0 +1,60 @@
+diff --git a/web/src/app/dispatch-search/dispatch-search.component.spec.ts b/web/src/app/dispatch-search/dispatch-search.component.spec.ts
+index 5a832b6..309223d 100644
+--- a/web/src/app/dispatch-search/dispatch-search.component.spec.ts
++++ b/web/src/app/dispatch-search/dispatch-search.component.spec.ts
+@@ -1,4 +1,4 @@
+-import { TestBed } from '@angular/core/testing';
++import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+ import { of } from 'rxjs';
+ import { DispatchService } from '../dispatch.service';
+ import { aDispatch, typeInto } from '../testing';
+@@ -23,23 +23,25 @@ describe('DispatchSearchComponent', () => {
+     return { fixture, input, items };
+   }
+ 
+-  it('shows matches for the query', () => {
++  it('shows matches for the query', fakeAsync(() => {
+     search.mockReturnValue(of([aDispatch({ id: 3, reference: 'NWD-1003', destination: 'Salem' })]));
+     const { fixture, input, items } = render();
+ 
+     typeInto(input, 'NWD-1003');
++    tick(500);
+     fixture.detectChanges();
+ 
+     expect(search).toHaveBeenCalledWith('NWD-1003');
+     expect(items()).toEqual(['NWD-1003: Portland to Salem']);
+-  });
++  }));
+ 
+-  it('does not search for fewer than two characters', () => {
++  it('does not search for fewer than two characters', fakeAsync(() => {
+     const { fixture, input } = render();
+ 
+     typeInto(input, 'N');
++    tick(500);
+     fixture.detectChanges();
+ 
+     expect(search).not.toHaveBeenCalled();
+-  });
++  }));
+ });
+diff --git a/web/src/app/dispatch-search/dispatch-search.component.ts b/web/src/app/dispatch-search/dispatch-search.component.ts
+index ed591ae..8b7ad04 100644
+--- a/web/src/app/dispatch-search/dispatch-search.component.ts
++++ b/web/src/app/dispatch-search/dispatch-search.component.ts
+@@ -1,6 +1,6 @@
+ import { Component, inject } from '@angular/core';
+ import { toSignal } from '@angular/core/rxjs-interop';
+-import { Subject, filter, map, mergeMap } from 'rxjs';
++import { Subject, debounceTime, filter, map, mergeMap } from 'rxjs';
+ import { Dispatch, DispatchService } from '../dispatch.service';
+ 
+ /** Typeahead search by reference or destination. Results update as the dispatcher types. */
+@@ -26,6 +26,7 @@ export class DispatchSearchComponent {
+     this.query$.pipe(
+       map((query) => query.trim()),
+       filter((query) => query.length >= 2),
++      debounceTime(300),
+       mergeMap((query) => this.dispatches.search(query)),
+     ),
+     { initialValue: [] as Dispatch[] },

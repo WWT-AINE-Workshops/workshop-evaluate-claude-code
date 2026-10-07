@@ -9,6 +9,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# .NET and Node build output, if a demo is built in place by mistake
+bin/
+obj/
+node_modules/
+
 # Office lock files
 ~$*
 

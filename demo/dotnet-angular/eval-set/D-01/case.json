@@ -1,0 +1,20 @@
+{
+  "case": "D-01",
+  "repo": "../northwind-dispatch-portal",
+  "request": "request.md",
+  "branch": "case/D-01",
+  "setup": "dotnet restore NorthwindDispatch.slnx && npm --prefix web ci --no-audit --no-fund",
+  "test": "dotnet test NorthwindDispatch.slnx",
+  "allow": [
+    "Bash(dotnet test *)",
+    "Bash(dotnet test)",
+    "Bash(dotnet build *)",
+    "Bash(dotnet build)",
+    "Bash(npm --prefix web test)",
+    "Bash(npm --prefix web test *)"
+  ],
+  "referenceRef": "pr-221-merged",
+  "referenceFiles": [
+    "api.tests/DispatchesTests.cs"
+  ]
+}

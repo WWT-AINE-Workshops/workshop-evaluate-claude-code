@@ -1,6 +1,6 @@
 # Answer key: Northwind practice cases
 
-For self-paced practice with [WALKTHROUGH.md](../WALKTHROUGH.md). **Open each section only after you've finished the exercise.** Everything here is fictional.
+For self-paced practice with [WALKTHROUGH.md](../../WALKTHROUGH.md). **Open each section only after you've finished the exercise.** Everything here is fictional.
 
 Your answers don't have to match word for word. What matters is whether a reviewer could apply what you wrote, and whether it catches what a bad result could get away with.
 

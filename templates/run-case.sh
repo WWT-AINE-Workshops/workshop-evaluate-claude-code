@@ -49,6 +49,11 @@
 #   - Activate the repository's virtual environment first so the test command works.
 #   - The settings file blocks Claude's reads outside the run folder
 #     (permissions.blockReadsOutsideWorkingDirectories, Claude Code v2.1.257 or later) and denies web access and git push.
+#   - Each run loads only the repository's own settings and CLAUDE.md: --setting-sources project,local skips your
+#     ~/.claude/settings.json (plugins, hooks), --strict-mcp-config skips your MCP servers, and
+#     --no-session-persistence plus the settings file's autoMemoryEnabled and disableAllHooks keep one run
+#     from leaving notes that the next run would read. The runs use a copy of the settings, written next to the
+#     clone, that adds claudeMdExcludes for your ~/.claude/CLAUDE.md and ~/.claude/rules.
 #   - CLAUDE_BIN overrides the claude binary (used to test this script with a stub).
 set -euo pipefail
 
@@ -111,7 +116,7 @@ REQUEST="$(abspath "$REQUEST")"
 SETTINGS="${SETTINGS:-$EVALSET/eval-run-settings.json}"
 if [ ! -f "$SETTINGS" ]; then
   die "settings file not found: $SETTINGS
-  Copy templates/ccw5g/eval-run-settings.json there (make-foundation-history.sh also writes one into its eval set),
+  Copy templates/eval-run-settings.json from the workshop repository there (make-foundation-history.sh also writes one into its eval set),
   or pass --settings <file>."
 fi
 SETTINGS="$(abspath "$SETTINGS")"
@@ -132,6 +137,20 @@ command -v "$CLAUDE_BIN" >/dev/null 2>&1 || die "claude not found (set CLAUDE_BI
 OUT="$EVALSET/outputs"
 CLONE="$RUNSDIR/eval-$CASE"
 mkdir -p "$OUT" "$RUNSDIR"
+
+# The runs use a copy of the settings that also skips your personal CLAUDE.md and rules. claudeMdExcludes only
+# matches absolute paths, so they are written here, for this machine, rather than in the shared settings file.
+RUNSETTINGS="$RUNSDIR/eval-$CASE.settings.json"
+python3 - "$SETTINGS" "$RUNSETTINGS" <<'PY' || die "$SETTINGS is not valid JSON"
+import json, os, sys
+s = json.load(open(sys.argv[1]))
+home = os.path.expanduser("~")
+ex = s.setdefault("claudeMdExcludes", [])
+for p in (home + "/.claude/CLAUDE.md", home + "/.claude/rules/**"):
+    if p not in ex:
+        ex.append(p)
+json.dump(s, open(sys.argv[2], "w"), indent=2)
+PY
 i=$START
 while [ "$i" -le "$LAST" ]; do
   [ -e "$RUNSDIR/$CASE-run-$i" ] && die "$RUNSDIR/$CASE-run-$i already exists. Remove it first."
@@ -167,7 +186,8 @@ i=$START
 while [ "$i" -le "$LAST" ]; do
   WT="$RUNSDIR/$CASE-run-$i"
   g -C "$CLONE" worktree add --quiet --detach "$WT"
-  ( cd "$WT" && exec "$CLAUDE_BIN" -p "$PROMPT" --settings "$SETTINGS" --permission-mode acceptEdits \
+  ( cd "$WT" && exec "$CLAUDE_BIN" -p "$PROMPT" --settings "$RUNSETTINGS" --permission-mode acceptEdits \
+      --setting-sources project,local --strict-mcp-config --no-session-persistence \
       --allowedTools "$ALLOW" --output-format json \
       < /dev/null > "$OUT/$CASE-run-$i.json" 2> "$OUT/$CASE-run-$i.stderr" ) &
   PIDS[i]=$!

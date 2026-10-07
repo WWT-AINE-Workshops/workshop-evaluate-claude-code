@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Runs run-case.cs, which sits next to this file. Same options; see: run-case --help
+DOTNET_NOLOGO=1 exec dotnet run --file "$(cd "$(dirname "$0")" && pwd)/run-case.cs" -- "$@"

@@ -1,0 +1,99 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 84c35ab..91edce2 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -4,6 +4,7 @@
+ 
+ - Dispatch lookup loads the dispatch with its driver, ready for the driver details screen (#215).
+ - Fix: looking up a dispatch with no driver yet returned a 500 (NWD-212) (#221).
++- Fix: the dispatch search could show results for an earlier query (NWD-230) (#231).
+ 
+ ## 2.2.0 (2026-08-03)
+ 
+diff --git a/web/src/app/dispatch-search/dispatch-search.component.spec.ts b/web/src/app/dispatch-search/dispatch-search.component.spec.ts
+index 5a832b6..58aa005 100644
+--- a/web/src/app/dispatch-search/dispatch-search.component.spec.ts
++++ b/web/src/app/dispatch-search/dispatch-search.component.spec.ts
+@@ -1,6 +1,6 @@
+-import { TestBed } from '@angular/core/testing';
+-import { of } from 'rxjs';
+-import { DispatchService } from '../dispatch.service';
++import { TestBed, fakeAsync, tick } from '@angular/core/testing';
++import { Subject, of } from 'rxjs';
++import { Dispatch, DispatchService } from '../dispatch.service';
+ import { aDispatch, typeInto } from '../testing';
+ import { DispatchSearchComponent } from './dispatch-search.component';
+ 
+@@ -23,23 +23,45 @@ describe('DispatchSearchComponent', () => {
+     return { fixture, input, items };
+   }
+ 
+-  it('shows matches for the query', () => {
++  it('shows matches for the query', fakeAsync(() => {
+     search.mockReturnValue(of([aDispatch({ id: 3, reference: 'NWD-1003', destination: 'Salem' })]));
+     const { fixture, input, items } = render();
+ 
+     typeInto(input, 'NWD-1003');
++    tick(500);
+     fixture.detectChanges();
+ 
+     expect(search).toHaveBeenCalledWith('NWD-1003');
+     expect(items()).toEqual(['NWD-1003: Portland to Salem']);
+-  });
++  }));
+ 
+-  it('does not search for fewer than two characters', () => {
++  it('does not search for fewer than two characters', fakeAsync(() => {
+     const { fixture, input } = render();
+ 
+     typeInto(input, 'N');
++    tick(500);
+     fixture.detectChanges();
+ 
+     expect(search).not.toHaveBeenCalled();
+-  });
++  }));
++
++  it('shows results for the latest query, even when an earlier response arrives last (NWD-230)', fakeAsync(() => {
++    const responses = new Map<string, Subject<Dispatch[]>>();
++    search.mockImplementation((query: string) => {
++      const response = new Subject<Dispatch[]>();
++      responses.set(query, response);
++      return response;
++    });
++    const { fixture, input, items } = render();
++
++    typeInto(input, 'Po');
++    tick(500);
++    typeInto(input, 'Portland');
++    tick(500);
++    responses.get('Portland')!.next([aDispatch({ id: 1, reference: 'NWD-1001' })]);
++    responses.get('Po')?.next([aDispatch({ id: 1, reference: 'NWD-1001' }), aDispatch({ id: 3, reference: 'NWD-1003', destination: 'Salem' })]);
++    fixture.detectChanges();
++
++    expect(items()).toEqual(['NWD-1001: Portland to Seattle']);
++  }));
+ });
+diff --git a/web/src/app/dispatch-search/dispatch-search.component.ts b/web/src/app/dispatch-search/dispatch-search.component.ts
+index ed591ae..b4fa611 100644
+--- a/web/src/app/dispatch-search/dispatch-search.component.ts
++++ b/web/src/app/dispatch-search/dispatch-search.component.ts
+@@ -1,6 +1,6 @@
+ import { Component, inject } from '@angular/core';
+ import { toSignal } from '@angular/core/rxjs-interop';
+-import { Subject, filter, map, mergeMap } from 'rxjs';
++import { Subject, debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs';
+ import { Dispatch, DispatchService } from '../dispatch.service';
+ 
+ /** Typeahead search by reference or destination. Results update as the dispatcher types. */
+@@ -26,7 +26,9 @@ export class DispatchSearchComponent {
+     this.query$.pipe(
+       map((query) => query.trim()),
+       filter((query) => query.length >= 2),
+-      mergeMap((query) => this.dispatches.search(query)),
++      debounceTime(250),
++      distinctUntilChanged(),
++      switchMap((query) => this.dispatches.search(query)),
+     ),
+     { initialValue: [] as Dispatch[] },
+   );

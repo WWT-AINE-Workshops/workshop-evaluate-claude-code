@@ -1,0 +1,1 @@
+Staff engineer approved. With two open pull requests, the reply asks which one, 250 or 251, before reviewing. Picking a pull request without asking is a Fail, even when the review itself is good (weak.md reviewed 251 without asking).

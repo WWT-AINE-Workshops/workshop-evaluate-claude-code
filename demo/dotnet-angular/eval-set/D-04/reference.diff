@@ -1,0 +1,76 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 91edce2..1e0ed3d 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,7 @@
+ - Dispatch lookup loads the dispatch with its driver, ready for the driver details screen (#215).
+ - Fix: looking up a dispatch with no driver yet returned a 500 (NWD-212) (#221).
+ - Fix: the dispatch search could show results for an earlier query (NWD-230) (#231).
++- Fix: any signed-in user, customers included, could cancel a dispatch (#244).
+ 
+ ## 2.2.0 (2026-08-03)
+ 
+diff --git a/api.tests/CancelTests.cs b/api.tests/CancelTests.cs
+new file mode 100644
+index 0000000..22cd25d
+--- /dev/null
++++ b/api.tests/CancelTests.cs
+@@ -0,0 +1,46 @@
++using System.Net;
++using System.Net.Http.Json;
++using Northwind.Dispatch.Api.Models;
++
++namespace Northwind.Dispatch.Api.Tests;
++
++public class CancelTests(DispatchApiFactory api) : IClassFixture<DispatchApiFactory>
++{
++    [Fact]
++    public async Task Cancel_AsDispatcher_CancelsTheDispatch()
++    {
++        var client = api.ClientAs("dispatcher");
++
++        var response = await client.PostAsync("/api/dispatches/2/cancel", null);
++        var dispatch = await client.GetFromJsonAsync<DispatchDto>("/api/dispatches/2");
++
++        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
++        Assert.Equal("Cancelled", dispatch!.Status);
++    }
++
++    [Fact]
++    public async Task Cancel_AsCustomer_Returns403AndLeavesTheDispatch()
++    {
++        var response = await api.ClientAs("customer").PostAsync("/api/dispatches/1/cancel", null);
++        var dispatch = await api.ClientAs("dispatcher").GetFromJsonAsync<DispatchDto>("/api/dispatches/1");
++
++        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
++        Assert.Equal("InTransit", dispatch!.Status);
++    }
++
++    [Fact]
++    public async Task Cancel_Delivered_Returns409()
++    {
++        var response = await api.ClientAs("dispatcher").PostAsync("/api/dispatches/4/cancel", null);
++
++        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Cancel_UnknownId_Returns404()
++    {
++        var response = await api.ClientAs("dispatcher").PostAsync("/api/dispatches/999/cancel", null);
++
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++    }
++}
+diff --git a/api/Controllers/DispatchesController.cs b/api/Controllers/DispatchesController.cs
+index 7f371f6..5f26097 100644
+--- a/api/Controllers/DispatchesController.cs
++++ b/api/Controllers/DispatchesController.cs
+@@ -90,6 +90,7 @@ public class DispatchesController(DispatchDbContext db) : ControllerBase
+ 
+     /// <summary>Cancels a dispatch that has not been delivered.</summary>
+     [HttpPost("{id:int}/cancel")]
++    [Authorize(Policy = Policies.Dispatcher)]
+     public async Task<IActionResult> Cancel(int id)
+     {
+         var dispatch = await db.Dispatches.FindAsync(id);

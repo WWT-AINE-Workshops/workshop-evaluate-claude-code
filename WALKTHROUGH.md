@@ -2,10 +2,12 @@
 
 A step-by-step guide to **Claude Lab: Evaluate Claude Code on Your Own Work**, in the order of the workshop agenda. Use it to follow along in a live session, to rehearse beforehand, or to work through the whole workshop on your own.
 
-- **Track A, practice on Northwind:** every step below. You work on a fictional service with six ready-made practice cases, and check your work against [demo/ANSWERS.md](demo/ANSWERS.md).
+- **Track A, practice on Northwind:** every step below. You work on a fictional service with six ready-made practice cases, and check your work against [demo/python-fastapi/ANSWERS.md](demo/python-fastapi/ANSWERS.md).
 - **Track B, your own repositories:** do [Setup](#1-setup) and the pre-work ([markdown](ccw5g-pre-work.md) · [Word](ccw5g-pre-work.docx)) first, then follow each exercise. Where you see the 🅱 note, use your own pull requests instead of Northwind's. [Section 10](#10-track-b-doing-it-on-your-own-repositories) collects the differences.
 
 **Who it's for:** anyone. **No experience with terminals, git, or Python is needed**: [Section 1](#1-setup) takes you from a bare computer to a working setup, and every later step says what to type and what you should see.
+
+> **A .NET and Angular team that already uses Claude Code?** [WALKTHROUGH-dotnet.md](WALKTHROUGH-dotnet.md) runs the same workshop on an ASP.NET Core and Angular practice kit, on Windows, WSL, macOS, or Linux.
 
 **Time:** about 3 hours, the length of the workshop. Setup takes about 20 minutes if you already have the tools, and up to an hour from scratch.
 **Cost:** Exercise 4 makes real `claude -p` calls, billed to your plan or API account. In testing, a Northwind practice run cost about $0.40. Six runs (two cases, three runs each) is the workshop's standard load. Each run's JSON output reports its exact cost.
@@ -147,21 +149,23 @@ You should see something like `git version 2.43.0`. Any version from 2.28 up is 
 
 ```bash
 cd ~
-git clone <workshop-repository-url> ccw5g
+git clone https://github.com/WWT-AINE-Workshops/workshop-evaluate-claude-code ccw5g
 cd ccw5g
 ls
 ```
 
-Replace `<workshop-repository-url>` with the address your presenter gave you (the green **Code** button on GitHub shows it). The `ls` command should list these names (your terminal may lay them out in columns):
+This downloads the repository, `workshop-evaluate-claude-code`, from the WWT-AINE-Workshops organization on GitHub. The `ccw5g` at the end of the command is just the name of the folder it creates on your computer: keep it, because the rest of this guide uses `~/ccw5g`. The `ls` command should list these names (your terminal may lay them out in columns):
 
 ```text
-AGENTS.md  CLAUDE.md  README.md  WALKTHROUGH.md  demo  templates
+AGENTS.md  CLAUDE.md  LICENSE  README.md  WALKTHROUGH-dotnet.md  WALKTHROUGH.md  demo  templates
 ccw5g-participant-workbook.docx  ccw5g-participant-workbook.md
 ccw5g-pre-work.docx  ccw5g-pre-work.md  ccw5g-slides.pptx
+ccw5gd-participant-workbook.docx  ccw5gd-participant-workbook.md
+ccw5gd-pre-work.docx  ccw5gd-pre-work.md  ccw5gd-slides.pptx
 ```
 
 - **On Windows, clone inside Ubuntu (WSL), in your home folder `~`**, not under `/mnt/c`. Files on the Windows side get changed in ways that break the scripts.
-- **If it asks for a username and password,** GitHub doesn't accept account passwords. Ask your presenter for access and a way to sign in, or use GitHub's [personal access token](https://github.com/settings/tokens) as the password.
+- **If it says the repository isn't found, or asks for a username and password,** you need access to the WWT-AINE-Workshops organization first: ask your presenter. GitHub doesn't accept account passwords at that prompt, so use your GitHub username and a [personal access token](https://github.com/settings/tokens) as the password, or run `gh auth login` if you have GitHub's command-line tool.
 - **No git access at all?** On GitHub, choose **Code > Download ZIP**, unzip it into your home folder, and rename the folder to `ccw5g`. ZIP files can lose the "runnable" flag on scripts, so put the word `bash` in front of every script you run, for example `bash ~/ccw5g/templates/check-setup.sh`.
 
 ### 1.6 Check what you have
@@ -322,8 +326,8 @@ source ~/ccw5g/templates/start.sh
 mkdir -p ~/nw-foundation
 "$PYTHON" -m venv ~/nw-foundation/.venv
 source ~/nw-foundation/.venv/bin/activate
-pip install -r "$KIT/demo/northwind-shipments-api/requirements.txt" \
-            -r "$KIT/demo/northwind-shipments-api/requirements-dev.txt"
+pip install -r "$KIT/demo/python-fastapi/northwind-shipments-api/requirements.txt" \
+            -r "$KIT/demo/python-fastapi/northwind-shipments-api/requirements-dev.txt"
 ```
 
 The install takes under a minute. It ends with a long `Successfully installed …` line. A `[notice] A new release of pip is available` message is harmless: ignore it.
@@ -334,7 +338,7 @@ The install takes under a minute. It ends with a long `Successfully installed �
 Now build the practice repository. Still in the same window:
 
 ```bash
-"$KIT/demo/make-foundation-history.sh" --verify ~/nw-foundation
+"$KIT/demo/python-fastapi/make-foundation-history.sh" --verify ~/nw-foundation
 ```
 
 The script copies the fictional `northwind-shipments-api` service into `~/nw-foundation`, gives it a history of merged, closed, and open pull requests, and writes `~/nw-foundation/eval-set/` with six practice cases. `--verify` then checks every step as it goes. It takes about 15 seconds and prints about 50 lines, each starting `PASS`. It never signs commits or runs your git hooks.
@@ -437,7 +441,7 @@ Then:
 3. Use the workbook page to draft, if that's easier.
 
 - **Done when** three target tasks have a row each and every exit criterion has a target, written before you have run anything.
-- **Compare:** [ANSWERS.md §1](demo/ANSWERS.md#1-exercise-1-target-tasks-and-exit-criteria). Your targets can differ. What matters is that each one could be measured.
+- **Compare:** [ANSWERS.md §1](demo/python-fastapi/ANSWERS.md#1-exercise-1-target-tasks-and-exit-criteria). Your targets can differ. What matters is that each one could be measured.
 
 > 🅱 **Track B:** confirm the three to five target tasks from your pre-work, and set targets from your own week-1 figures.
 
@@ -530,7 +534,7 @@ On the **Eval Cases** tab, write one row per case, **P-01 to P-06**:
 
 **Done when** six cases have a row each, naming their target task and reference.
 
-**Compare:** now open the finished cases: `ls ~/nw-foundation/eval-set/P-0*` (or browse [demo/eval-set/](demo/eval-set/)), and [ANSWERS.md §2](demo/ANSWERS.md#2-exercise-2-the-six-cases). Each `request.md`, `context.md`, and `note.md` is one case. Rewrite any row where yours missed something a bad fix could get away with.
+**Compare:** now open the finished cases: `ls ~/nw-foundation/eval-set/P-0*` (or browse [demo/python-fastapi/eval-set/](demo/python-fastapi/eval-set/)), and [ANSWERS.md §2](demo/python-fastapi/ANSWERS.md#2-exercise-2-the-six-cases). Each `request.md`, `context.md`, and `note.md` is one case. Rewrite any row where yours missed something a bad fix could get away with.
 
 > 🅱 **Track B:** write cases from the pull requests in your team's `eval-set` folder. Create the case branch for each, as [pre-work](ccw5g-pre-work.md) Step 3 describes.
 
@@ -565,7 +569,7 @@ Three cases have both a reference output and a weak one: **P-01, P-04, and P-06*
    ```
 
 2. On the **Calibration** tab, add one row per output: Case ID, Output graded (Weak or Reference), Grader A = you, Grader A verdict.
-3. Open [ANSWERS.md §3](demo/ANSWERS.md#3-exercise-3-calibration). It plays **Grader B**. Enter its verdicts, and set "Both domain experts?" to **No**: the case is recorded as *Expert and presenter* until a second real expert confirms it.
+3. Open [ANSWERS.md §3](demo/python-fastapi/ANSWERS.md#3-exercise-3-calibration). It plays **Grader B**. Enter its verdicts, and set "Both domain experts?" to **No**: the case is recorded as *Expert and presenter* until a second real expert confirms it.
 4. Where the verdicts differ, rewrite the case on the Eval Cases tab, and grade it again on a new Calibration row.
 
 - **Done when** every graded output has an agreed verdict or a rewritten case, and the agreement rate shows at the top right of the Calibration tab.
@@ -577,12 +581,13 @@ Three cases have both a reference output and a weak one: **P-01, P-04, and P-06*
 
 *Slides 18–21. About 28 minutes. Workbook Exercise 4 ([markdown](ccw5g-participant-workbook.md#exercise-4-run-the-baseline) · [Word](ccw5g-participant-workbook.docx)). Tracker: **Runs** tab.*
 
-You now measure what Claude Code does today. No skill is needed: the baseline is Claude Code as you have it, with the repository's CLAUDE.md. Note what your own setup includes (a personal `~/.claude/CLAUDE.md`, plugins, MCP servers, hooks), because it shapes the runs.
+You now measure what Claude Code does today. No skill is needed: the baseline is Claude Code as installed, with the repository's own CLAUDE.md. Your personal setup is left out of the runs: your `~/.claude/settings.json`, plugins, hooks, MCP servers, personal `~/.claude/CLAUDE.md` and rules, and auto memory. That way every attendee measures the same thing, and one run can't leave notes that the next run reads.
 
-**Why isolation matters.** Anthropic has seen Claude gain an unfair advantage in its own evaluations by reading the git history of earlier trials. Two things stop that here:
+**Why isolation matters.** Anthropic has seen Claude gain an unfair advantage in its own evaluations by reading the git history of earlier trials. Three things guard against that here:
 
 1. Each run's clone stops at the case branch, so the fix isn't in its history.
-2. `eval-run-settings.json` turns on `permissions.blockReadsOutsideWorkingDirectories`. Without it, commands like `cat` can read `~/nw-foundation` (where the answers are) from inside a run. With it, Claude's reads outside the run folder are refused.
+2. `eval-run-settings.json` turns on `permissions.blockReadsOutsideWorkingDirectories`. Without it, commands like `cat` can read `~/nw-foundation` (where the answers are) from inside a run. With it, Claude's own reads outside the run folder are refused. It does not cover programs the run starts: a test that Claude writes and then runs with `pytest` could still open a file outside the folder. So when you grade, read every new or changed test in the diff.
+3. Each run loads only the repository's own settings and CLAUDE.md, with hooks and auto memory off and nothing saved after the session. Plugins, hooks, and memory are where one run's results can reach the next, as notes it reads at start-up.
 
 ### 7.1 One run by hand (case P-01)
 
@@ -617,6 +622,7 @@ A **worktree** is a second working folder for the same repository, so each run h
 claude -p "$(cat ~/nw-foundation/eval-set/P-01/request.md)" \
   --settings ~/nw-foundation/eval-set/eval-run-settings.json \
   --permission-mode acceptEdits \
+  --setting-sources project,local --strict-mcp-config --no-session-persistence \
   --allowedTools "Bash(pytest *),Bash(python -m pytest *)" \
   --output-format json > ~/nw-foundation/eval-set/outputs/P-01-run-1.json
 ```
@@ -626,6 +632,7 @@ claude -p "$(cat ~/nw-foundation/eval-set/P-01/request.md)" \
 What the flags do:
 
 - `acceptEdits` lets Claude edit files without asking.
+- `--setting-sources project,local` reads only the repository's settings, not your `~/.claude/settings.json`, so your plugins and hooks don't run. `--strict-mcp-config` leaves out your MCP servers, and `--no-session-persistence` saves nothing for a later session to find. The settings file adds the rest: hooks and auto memory off, and your personal CLAUDE.md and rules skipped.
 - `--allowedTools` pre-approves the test command. Nobody answers prompts in a `-p` run, so anything else that would ask is denied.
 - `--output-format json` keeps the reply together with its cost and the model used.
 
@@ -744,7 +751,7 @@ Open the **Summary** tab. It calculates everything from your Eval Cases, Runs, a
 
 If you ran only a few cases, read your numbers as a first look, not a result: one run shows whether Claude Code *can* do the work, not whether it does it every time.
 
-**Compare:** [ANSWERS.md §4](demo/ANSWERS.md#4-reading-the-result) walks through a full, fictional set of 18 runs on these six cases, the same one presenters show.
+**Compare:** [ANSWERS.md §4](demo/python-fastapi/ANSWERS.md#4-reading-the-result) walks through a full, fictional set of 18 runs on these six cases, the same one presenters show.
 
 ---
 
@@ -758,7 +765,7 @@ If you ran only a few cases, read your numbers as a first look, not a result: on
 3. **Readout:** say out loud, or write down, the target tasks measured, the pass rate by task, the share of cases passing every run, which exit criteria are met, and the decision and owner for each task.
 
 - **Done when** every target task has one decision and an owner, and every exit criterion has a measured value or reads *Not yet measured*.
-- **Compare:** [ANSWERS.md §5](demo/ANSWERS.md#5-exercise-5-decisions).
+- **Compare:** [ANSWERS.md §5](demo/python-fastapi/ANSWERS.md#5-exercise-5-decisions).
 
 **After the workshop:**
 
@@ -779,7 +786,7 @@ Everything above works the same on your own code. Your team prepares the inputs 
 | `--repo ~/nw-foundation/northwind-shipments-api` | `--repo <your repository's clone URL or path>` |
 | `pytest -q` and `Bash(pytest *)` | Your repository's exact test command, in both `--test` and `--allow` |
 | `--reference-repo` = the practice repository | A full-history clone of your repository, kept **outside** the runs folder |
-| Answer key in `demo/ANSWERS.md` | Your domain experts, grading separately |
+| Answer key in `demo/python-fastapi/ANSWERS.md` | Your domain experts, grading separately |
 | Fictional week-1 analytics | Your analytics dashboard (pre-work Step 4) |
 
 Things to watch on real code:
@@ -814,6 +821,7 @@ rm -rf ~/nw-foundation
 | The screen shows `:` or `(END)` and nothing responds | You're in a pager. Press `q` |
 | A run seems stuck | `claude -p` prints nothing until it finishes, and a run can take up to five minutes. Wait. To give up, press `Ctrl + C`, then remove the worktree (see below) and start that run again |
 | `claude -p` fails with a login or permission message | Run `bash ~/ccw5g/templates/check-setup.sh --live`. Usually you need to sign in (run `claude`), or your plan doesn't include Claude Code |
+| A run can't sign in, although plain `claude -p` works | Your Amazon Bedrock, Google Cloud, or Microsoft Foundry settings, or an `apiKeyHelper`, are in your `~/.claude/settings.json`, which the runs skip. Set the same values as environment variables in your terminal instead (for example `export CLAUDE_CODE_USE_BEDROCK=1`), then run again |
 | `make-foundation-history.sh` says the folder already exists | Remove `~/nw-foundation/northwind-shipments-api` and `~/nw-foundation/eval-set`, then run it again |
 | `--verify` says it needs pytest, ruff, and the requirements | Activate the virtual environment: `source ~/nw-foundation/.venv/bin/activate` |
 | Many `DeprecationWarning` lines in test output | You're on Python 3.14 or later. Use 3.11–3.13, or add `-W ignore::DeprecationWarning` to the test command |

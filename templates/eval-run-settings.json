@@ -1,4 +1,6 @@
 {
+  "autoMemoryEnabled": false,
+  "disableAllHooks": true,
   "permissions": {
     "blockReadsOutsideWorkingDirectories": true,
     "deny": ["WebFetch", "WebSearch", "Bash(git push *)", "Bash(curl *)", "Bash(wget *)"]

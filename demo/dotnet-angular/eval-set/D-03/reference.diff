@@ -1,0 +1,73 @@
+diff --git a/api.tests/DispatchListTests.cs b/api.tests/DispatchListTests.cs
+new file mode 100644
+index 0000000..212af43
+--- /dev/null
++++ b/api.tests/DispatchListTests.cs
+@@ -0,0 +1,67 @@
++using System.Net;
++using System.Net.Http.Json;
++using Microsoft.AspNetCore.Mvc;
++using Northwind.Dispatch.Api.Models;
++
++namespace Northwind.Dispatch.Api.Tests;
++
++public class DispatchListTests(DispatchApiFactory api) : IClassFixture<DispatchApiFactory>
++{
++    private async Task<string[]> References(string query)
++    {
++        var dispatches = await api.ClientAs("dispatcher").GetFromJsonAsync<List<DispatchDto>>("/api/dispatches" + query);
++        return dispatches!.Select(d => d.Reference).ToArray();
++    }
++
++    [Fact]
++    public async Task Sort_DefaultsToCreated()
++    {
++        Assert.Equal(["NWD-1004", "NWD-1001", "NWD-1002", "NWD-1003"], await References(""));
++    }
++
++    [Fact]
++    public async Task Sort_ByEta_PutsDispatchesWithoutAnEtaLast()
++    {
++        Assert.Equal(["NWD-1004", "NWD-1002", "NWD-1001", "NWD-1003"], await References("?sort=eta"));
++    }
++
++    [Fact]
++    public async Task Sort_ByReference()
++    {
++        Assert.Equal(["NWD-1001", "NWD-1002", "NWD-1003", "NWD-1004"], await References("?sort=reference"));
++    }
++
++    [Theory]
++    [InlineData("InTransit", "NWD-1001")]
++    [InlineData("pending", "NWD-1003")]
++    public async Task Status_FiltersTheList_IgnoringCase(string status, string reference)
++    {
++        Assert.Equal([reference], await References($"?status={status}"));
++    }
++
++    [Fact]
++    public async Task UnknownSort_Returns400NamingTheAllowedValues()
++    {
++        var response = await api.ClientAs("dispatcher").GetAsync("/api/dispatches?sort=driver");
++        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++        Assert.Contains("created, eta, reference", Assert.Single(problem!.Errors["sort"]));
++    }
++
++    [Fact]
++    public async Task UnknownStatus_Returns400()
++    {
++        var response = await api.ClientAs("dispatcher").GetAsync("/api/dispatches?status=Lost");
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task List_AsCustomer_Returns403()
++    {
++        var response = await api.ClientAs("customer").GetAsync("/api/dispatches");
++
++        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
++    }
++}

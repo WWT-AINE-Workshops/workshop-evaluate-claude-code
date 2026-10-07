@@ -1,0 +1,1 @@
+QA lead approved. A test per sort value (created, eta, reference), the eta order with the dispatch that has no eta last, the status filter, and the 400 for an unknown sort naming the allowed values. The tests use IClassFixture<DispatchApiFactory> and ClientAs (CLAUDE.md), and the controller is unchanged. A hand-built HttpClient or a new factory fails the conventions.

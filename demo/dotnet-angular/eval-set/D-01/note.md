@@ -1,0 +1,1 @@
+Backend lead approved. A dispatch with no driver returns 200, with driverName null (docs/api.md). Returning 404 or an empty string, or catching the exception, is a Fail, and so is editing an existing test. weak.diff (pull request 219) returns 404 for a dispatch that exists, and adds a test that asserts it.

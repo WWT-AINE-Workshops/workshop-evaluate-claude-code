@@ -1,0 +1,1 @@
+Frontend lead approved. The search drops the earlier request when a newer query arrives: switchMap, or an equivalent that cancels it. debounceTime alone is a Fail (weak.diff, pull request 229): its tests pass, but a slow earlier response still wins. Existing tests may move to fakeAsync and tick; their assertions must not change.

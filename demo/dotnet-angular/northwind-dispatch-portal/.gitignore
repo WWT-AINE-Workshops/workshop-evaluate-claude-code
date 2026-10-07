@@ -1,0 +1,7 @@
+bin/
+obj/
+*.db
+node_modules/
+web/dist/
+web/.angular/
+.DS_Store

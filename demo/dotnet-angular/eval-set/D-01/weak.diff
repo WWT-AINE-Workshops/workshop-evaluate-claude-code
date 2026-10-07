@@ -1,0 +1,41 @@
+diff --git a/api.tests/DispatchesTests.cs b/api.tests/DispatchesTests.cs
+index 8c3fad8..1c1b5ec 100644
+--- a/api.tests/DispatchesTests.cs
++++ b/api.tests/DispatchesTests.cs
+@@ -25,6 +25,14 @@ public class DispatchesTests(DispatchApiFactory api) : IClassFixture<DispatchApi
+         Assert.Equal("Dana Ruiz", dispatch.DriverName);
+     }
+ 
++    [Fact]
++    public async Task Get_DispatchWithoutDriver_Returns404()
++    {
++        var response = await api.ClientAs("dispatcher").GetAsync("/api/dispatches/3");
++
++        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
++    }
++
+     [Fact]
+     public async Task Get_UnknownId_Returns404()
+     {
+diff --git a/api/Controllers/DispatchesController.cs b/api/Controllers/DispatchesController.cs
+index 91588d1..a1ed3a6 100644
+--- a/api/Controllers/DispatchesController.cs
++++ b/api/Controllers/DispatchesController.cs
+@@ -64,8 +64,15 @@ public class DispatchesController(DispatchDbContext db) : ControllerBase
+             return NotFound();
+         }
+ 
+-        return new DispatchDto(dispatch.Id, dispatch.Reference, dispatch.Status.ToString(), dispatch.Origin,
+-            dispatch.Destination, dispatch.Driver!.Name, dispatch.CreatedAt, dispatch.Eta);
++        try
++        {
++            return new DispatchDto(dispatch.Id, dispatch.Reference, dispatch.Status.ToString(), dispatch.Origin,
++                dispatch.Destination, dispatch.Driver!.Name, dispatch.CreatedAt, dispatch.Eta);
++        }
++        catch (NullReferenceException)
++        {
++            return NotFound();
++        }
+     }
+ 
+     /// <summary>Typeahead search by reference or destination, for the portal's search box.</summary>

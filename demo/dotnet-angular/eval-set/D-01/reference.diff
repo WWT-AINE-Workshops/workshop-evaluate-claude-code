@@ -1,0 +1,47 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ff2ba75..84c35ab 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -3,6 +3,7 @@
+ ## Unreleased
+ 
+ - Dispatch lookup loads the dispatch with its driver, ready for the driver details screen (#215).
++- Fix: looking up a dispatch with no driver yet returned a 500 (NWD-212) (#221).
+ 
+ ## 2.2.0 (2026-08-03)
+ 
+diff --git a/api.tests/DispatchesTests.cs b/api.tests/DispatchesTests.cs
+index 8c3fad8..84527c8 100644
+--- a/api.tests/DispatchesTests.cs
++++ b/api.tests/DispatchesTests.cs
+@@ -25,6 +25,17 @@ public class DispatchesTests(DispatchApiFactory api) : IClassFixture<DispatchApi
+         Assert.Equal("Dana Ruiz", dispatch.DriverName);
+     }
+ 
++    [Fact]
++    public async Task Get_PendingDispatch_HasNoDriverName()
++    {
++        var dispatch = await api.ClientAs("dispatcher").GetFromJsonAsync<DispatchDto>("/api/dispatches/3");
++
++        Assert.NotNull(dispatch);
++        Assert.Equal("NWD-1003", dispatch.Reference);
++        Assert.Equal("Pending", dispatch.Status);
++        Assert.Null(dispatch.DriverName);
++    }
++
+     [Fact]
+     public async Task Get_UnknownId_Returns404()
+     {
+diff --git a/api/Controllers/DispatchesController.cs b/api/Controllers/DispatchesController.cs
+index 91588d1..7f371f6 100644
+--- a/api/Controllers/DispatchesController.cs
++++ b/api/Controllers/DispatchesController.cs
+@@ -65,7 +65,7 @@ public class DispatchesController(DispatchDbContext db) : ControllerBase
+         }
+ 
+         return new DispatchDto(dispatch.Id, dispatch.Reference, dispatch.Status.ToString(), dispatch.Origin,
+-            dispatch.Destination, dispatch.Driver!.Name, dispatch.CreatedAt, dispatch.Eta);
++            dispatch.Destination, dispatch.Driver?.Name, dispatch.CreatedAt, dispatch.Eta);
+     }
+ 
+     /// <summary>Typeahead search by reference or destination, for the portal's search box.</summary>

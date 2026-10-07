@@ -1,0 +1,1 @@
+Fix NWD-230: the dispatch search box sometimes shows results for an earlier query. Type "Po", pause, then finish typing "Portland": when the first request is slow, its results replace the ones for "Portland".

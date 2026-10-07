@@ -664,15 +664,22 @@ cat > "$EVAL/P-06/note.md" <<'EOF'
 Staff engineer approved. With two open pull requests, the reply asks which one, 170 or 171, before reviewing. Picking a pull request without asking is a Fail, even when the review itself is good (weak.md reviewed 171 without asking).
 EOF
 
-# Same content as templates/ccw5g/eval-run-settings.json.
-cat > "$EVAL/eval-run-settings.json" <<'EOF'
-{
-  "permissions": {
-    "blockReadsOutsideWorkingDirectories": true,
-    "deny": ["WebFetch", "WebSearch", "Bash(git push *)", "Bash(curl *)", "Bash(wget *)"]
-  }
+# The content of templates/eval-run-settings.json, plus claudeMdExcludes for this machine's personal CLAUDE.md
+# and rules (it only matches absolute paths, so the shared template cannot carry it). run-case.sh adds the same.
+python3 - "$EVAL/eval-run-settings.json" <<'PY'
+import json, os, sys
+home = os.path.expanduser("~")
+settings = {
+    "autoMemoryEnabled": False,
+    "disableAllHooks": True,
+    "claudeMdExcludes": [home + "/.claude/CLAUDE.md", home + "/.claude/rules/**"],
+    "permissions": {
+        "blockReadsOutsideWorkingDirectories": True,
+        "deny": ["WebFetch", "WebSearch", "Bash(git push *)", "Bash(curl *)", "Bash(wget *)"],
+    },
 }
-EOF
+json.dump(settings, open(sys.argv[1], "w"), indent=2)
+PY
 
 # The build succeeded; from here on a failure leaves the repository in place for inspection.
 CREATED=0

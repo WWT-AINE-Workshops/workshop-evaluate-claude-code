@@ -1,0 +1,36 @@
+diff --git a/api.tests/CancelTests.cs b/api.tests/CancelTests.cs
+new file mode 100644
+index 0000000..87cac7c
+--- /dev/null
++++ b/api.tests/CancelTests.cs
+@@ -0,0 +1,30 @@
++using System.Net;
++
++namespace Northwind.Dispatch.Api.Tests;
++
++public class CancelTests(DispatchApiFactory api) : IClassFixture<DispatchApiFactory>
++{
++    [Fact]
++    public async Task Cancel_AsDispatcher_Returns204()
++    {
++        var response = await api.ClientAs("dispatcher").PostAsync("/api/dispatches/2/cancel", null);
++
++        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Cancel_AsCustomer_Returns204()
++    {
++        var response = await api.ClientAs("customer").PostAsync("/api/dispatches/1/cancel", null);
++
++        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task Cancel_Delivered_Returns409()
++    {
++        var response = await api.ClientAs("dispatcher").PostAsync("/api/dispatches/4/cancel", null);
++
++        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
++    }
++}
