@@ -46,6 +46,8 @@ A step-by-step guide to **Claude Lab: Evaluate Claude Code on Your Own Work**, i
 | 2:40–2:55 | Exercise 5 | 24 | Exercise 5 | [§9](#9-exercise-5-decide-and-hand-off) |
 | 2:55–3:00 | Readout and close | 25–26 | Reference: After the workshop | [§9](#9-exercise-5-decide-and-hand-off) |
 
+Each exercise below gives the time for its hands-on part; the rest of its slot in the table is slides and discussion.
+
 Keep the deck ([ccw5g-slides.pptx](ccw5g-slides.pptx)) and the workbook ([markdown](ccw5g-participant-workbook.md) · [Word](ccw5g-participant-workbook.docx)) open alongside this page. The workbook's [Reference](ccw5g-participant-workbook.md#reference) section, which ends with a glossary, defines every term used here. Use the Word version to type into it or print it; the markdown version reads best on GitHub.
 
 ---
@@ -95,9 +97,10 @@ A **terminal** is a window where you type commands instead of clicking. Everythi
      ```powershell
      wsl --install -d Ubuntu-24.04
      ```
-  3. Restart the computer if it asks. Afterwards an **Ubuntu** window opens (or open **Ubuntu** from the Start menu). It asks you to create a username and a password. Choose anything you'll remember. When you type the password **no characters appear**: that is normal.
+  3. Restart the computer if it asks. Afterwards an **Ubuntu** window opens (or open **Ubuntu 24.04 LTS** from the Start menu). It asks you to create a username and a password. Choose anything you'll remember. When you type the password **no characters appear**: that is normal.
   4. **That Ubuntu window is your terminal for the whole workshop.** Wherever this guide says "terminal", use it, not PowerShell or Command Prompt.
   - If `wsl` isn't recognized, or your company blocks it, ask your IT team to enable WSL, or use another computer.
+  - If the install stops with a message about **virtualization** (or an error code such as `0x80370102`), virtualization is turned off in the computer's firmware. Your IT team can turn it on; on a company laptop, don't change firmware settings yourself.
 
 What you should see is a window with a blinking cursor and a line of text ending in `$` or `%`, such as `alex@laptop:~$`. That line is the **prompt**: it means the terminal is waiting for you.
 
@@ -124,6 +127,8 @@ Six commands you'll meet:
 | `cat <file>` | Prints a file's contents |
 | `less <file>` | Shows a file one screen at a time. `Space` scrolls, `q` quits |
 | `clear` | Tidies the screen |
+
+On Windows, pasting a box of several lines into the Ubuntu window may show a warning that you're pasting multiple lines: choose **Paste anyway**.
 
 Two time-savers: press `Tab` after typing the start of a file or folder name and the terminal completes it, and press the **up arrow** to bring back the previous command.
 
@@ -167,6 +172,11 @@ ccw5gd-pre-work.docx  ccw5gd-pre-work.md  ccw5gd-slides.pptx
 - **On Windows, clone inside Ubuntu (WSL), in your home folder `~`**, not under `/mnt/c`. Files on the Windows side get changed in ways that break the scripts.
 - **If it says the repository isn't found, or asks for a username and password,** you need access to the WWT-AINE-Workshops organization first: ask your presenter. GitHub doesn't accept account passwords at that prompt, so use your GitHub username and a [personal access token](https://github.com/settings/tokens) as the password, or run `gh auth login` if you have GitHub's command-line tool.
 - **No git access at all?** On GitHub, choose **Code > Download ZIP**, unzip it into your home folder, and rename the folder to `ccw5g`. ZIP files can lose the "runnable" flag on scripts, so put the word `bash` in front of every script you run, for example `bash ~/ccw5g/templates/check-setup.sh`.
+  - **On Windows,** the ZIP lands in your Windows Downloads folder. Move it into Ubuntu's home folder from the Ubuntu window, replacing `<you>` with your Windows user name (look in `C:\Users` if unsure):
+    ```bash
+    sudo apt update && sudo apt install -y unzip
+    cd ~ && cp /mnt/c/Users/<you>/Downloads/workshop-evaluate-claude-code-main.zip ~/ && unzip -q workshop-evaluate-claude-code-main.zip && mv workshop-evaluate-claude-code-main ccw5g
+    ```
 
 ### 1.6 Check what you have
 
@@ -251,7 +261,7 @@ cd ~
 claude
 ```
 
-1. If it asks whether you trust the folder, choose **Yes**.
+1. The first time, Claude Code asks you to pick a colour theme (any is fine) and how to sign in: choose your **Claude account** (subscription) unless your organization told you to use the Console or a cloud provider. Then, if it asks whether you trust the folder, choose **Yes**.
 2. A browser window opens. Sign in to your Claude account and approve. (**No browser, such as in WSL?** Copy the web address it prints into any browser on your computer and follow the steps there.)
 3. Back in the terminal you'll see the Claude Code welcome screen. Type `/exit` and press `Enter` to leave.
 
@@ -282,6 +292,8 @@ Opening a file or folder from the terminal:
 On WSL you can also open **File Explorer** and type `\\wsl$\Ubuntu-24.04\home\<your-username>` in the address bar.
 
 ### 1.11 Start every terminal session with `start.sh`
+
+Type `source`, not `bash`, for this one script: `bash` would run it and forget everything it set at once.
 
 Each new terminal window starts with a clean slate: it forgets where this repository is, and which Python tools are switched on. So **at the start of every new terminal window** run:
 
@@ -379,7 +391,7 @@ Your eleven commit codes (the first column) match these exactly. That tells you 
 cp "$KIT/templates/foundation-evaluation-tracker.xlsx" ~/nw-foundation/eval-set/
 ```
 
-Now open it (see the table in [1.10](#110-a-spreadsheet-and-opening-files); on macOS, `open ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx`).
+Now open it (see the table in [1.10](#110-a-spreadsheet-and-opening-files)). On macOS: `open ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx`. On WSL: `explorer.exe "$(wslpath -w ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx)"`.
 
 The tracker is where every exercise's results go. Its **Read Me** tab explains each tab. Row 4 of every tab is a grey example that the calculations skip: start your entries on row 5. If Excel opens the file in **Protected View**, choose **Enable Editing** so the formulas calculate. **Save** (`Cmd/Ctrl + S`) as you go.
 
@@ -431,9 +443,9 @@ A good target task is work engineers do often, where a test or a reviewer can ju
 
 Then:
 
-1. For each task, fill in **What good output looks like** in one or two lines a reviewer would agree with. Fill in how often it happens and the inputs it needs; leave **Decision** as *Not decided yet*. The service's `docs/review-checklist.md` and `tests/conftest.py` (in `~/nw-foundation/northwind-shipments-api`) are worth a look first.
+1. For each task, fill in **What good output looks like** in one or two lines a reviewer would agree with. Fill in how often it happens and the inputs it needs; leave **Decision** as *Not decided yet*. The service's `docs/review-checklist.md` and `tests/conftest.py` are worth a look first: `less ~/nw-foundation/northwind-shipments-api/docs/review-checklist.md`, then `less ~/nw-foundation/northwind-shipments-api/tests/conftest.py` (press `q` to leave each).
 2. On the **Exit Criteria** tab, set a target for each criterion **before any result exists**:
-   - **Target-task pass rate** (row 5), as a percentage.
+   - **Target-task pass rate, per task** (row 5): the percentage each target task must reach. The tracker judges every task against it separately, on the Summary tab.
    - **Share of cases passing every run** (row 6), the consistency bar, as a percentage.
    - **Adoption** (rows 7–8), from Northwind's fictional week-1 analytics: 20 seats, 7 daily active users in week 1 (35%), and 9% of pull requests with Claude Code.
    - **Target tasks ready to expand** (row 9).
@@ -504,22 +516,22 @@ What the graph shows:
 - **`pr-149-weak`** is an early fix that was merged and then reverted.
 - **`pr-161-weak`** is a pull request that was closed without merging.
 - **`pr-170` and `pr-171`** are branches with open pull requests.
-- **`case/P-0N` branches** sit at the commit before each pull request. That's where each case's run starts.
+- **`case/P-0N` branches** sit at the commit before each pull request. That's where each case's run starts. The two review cases are the exception: `case/P-05` sits on pull request 170 itself, and `case/P-06` on `main`.
 
 Northwind's issue tracker, as the team would see it on its Git host:
 
-| Pull request | Status | Issue or description | Approved or reviewed by |
-|---|---|---|---|
-| #151 (`pr-151-merged`) | Merged | Issue 142: "GET /shipments/{id} returns a 500 when the shipment has no carrier yet. A missing carrier is valid for shipments not yet dispatched." | Backend lead |
-| #149 (`pr-149-weak`) | Merged, then reverted (#150) | An early fix for issue 142, written with Claude Code | Reverted by the backend lead |
-| #153 (`pr-153-merged`) | Merged | "Write tests for the carriers sort parameter." | QA lead |
-| #158 (`pr-158-merged`) | Merged | Issue 156: "Searching shipments for a name with an apostrophe, such as O'Brien, returns a 500." | Backend lead |
-| #161 (`pr-161-weak`) | Closed, not merged | "Add tests for the admin delete endpoint", first attempt, written with Claude Code | Rejected by the QA lead |
-| #163 (`pr-163-merged`) | Merged | Admin delete requires an admin, with its tests | QA lead |
-| #170 (branch `pr-170`) | Open | "feat: export shipments as CSV". The staff engineer's review blocked it. | Staff engineer |
-| #171 (branch `pr-171`) | Open | "docs: add carriers examples to docs/api.md" | — |
+| Pull request | Case | Status | Issue or description | Approved or reviewed by |
+|---|---|---|---|---|
+| #151 (`pr-151-merged`) | P-01 | Merged | Issue 142: "GET /shipments/{id} returns a 500 when the shipment has no carrier yet. A missing carrier is valid for shipments not yet dispatched." | Backend lead |
+| #149 (`pr-149-weak`) | P-01 (its weak output) | Merged, then reverted (#150) | An early fix for issue 142, written with Claude Code | Reverted by the backend lead |
+| #153 (`pr-153-merged`) | P-03 | Merged | "Write tests for the carriers sort parameter." | QA lead |
+| #158 (`pr-158-merged`) | P-02 | Merged | Issue 156: "Searching shipments for a name with an apostrophe, such as O'Brien, returns a 500." | Backend lead |
+| #161 (`pr-161-weak`) | P-04 (its weak output) | Closed, not merged | "Add tests for the admin delete endpoint", first attempt, written with Claude Code | Rejected by the QA lead |
+| #163 (`pr-163-merged`) | P-04 | Merged | Admin delete requires an admin, with its tests | QA lead |
+| #170 (branch `pr-170`) | P-05, and P-06 | Open | "feat: export shipments as CSV". The staff engineer's review blocked it. | Staff engineer |
+| #171 (branch `pr-171`) | P-06 | Open | "docs: add carriers examples to docs/api.md" | — |
 
-Use `git show <tag-or-branch>` to read any of them, and `git diff case/P-02 pr-158-merged` (for example) to see exactly what a pull request changed.
+The Case column says which practice case each pull request belongs to: the case IDs follow the order the cases are written in, not the pull request numbers. Use `git show <tag-or-branch>` to read any of them, and `git diff case/P-02 pr-158-merged` (for example) to see exactly what a pull request changed.
 
 ### 5.2 Write six cases
 
@@ -534,7 +546,7 @@ On the **Eval Cases** tab, write one row per case, **P-01 to P-06**:
 
 **Done when** six cases have a row each, naming their target task and reference.
 
-**Compare:** now open the finished cases: `ls ~/nw-foundation/eval-set/P-0*` (or browse [demo/python-fastapi/eval-set/](demo/python-fastapi/eval-set/)), and [ANSWERS.md §2](demo/python-fastapi/ANSWERS.md#2-exercise-2-the-six-cases). Each `request.md`, `context.md`, and `note.md` is one case. Rewrite any row where yours missed something a bad fix could get away with.
+**Compare:** now open the finished cases: `ls ~/nw-foundation/eval-set/P-0*` (or browse [demo/python-fastapi/eval-set/](demo/python-fastapi/eval-set/)), and the table in [ANSWERS.md §2](demo/python-fastapi/ANSWERS.md#2-exercise-2-the-six-cases). Stop at the table: the notes after it give away Exercise 3. Each `request.md`, `context.md`, and `note.md` is one case. Rewrite any row where yours missed something a bad fix could get away with.
 
 > 🅱 **Track B:** write cases from the pull requests in your team's `eval-set` folder. Create the case branch for each, as [pre-work](ccw5g-pre-work.md) Step 3 describes.
 
@@ -581,13 +593,13 @@ Three cases have both a reference output and a weak one: **P-01, P-04, and P-06*
 
 *Slides 18–21. About 28 minutes. Workbook Exercise 4 ([markdown](ccw5g-participant-workbook.md#exercise-4-run-the-baseline) · [Word](ccw5g-participant-workbook.docx)). Tracker: **Runs** tab.*
 
-You now measure what Claude Code does today. No skill is needed: the baseline is Claude Code as installed, with the repository's own CLAUDE.md. Your personal setup is left out of the runs: your `~/.claude/settings.json`, plugins, hooks, MCP servers, personal `~/.claude/CLAUDE.md` and rules, and auto memory. That way every attendee measures the same thing, and one run can't leave notes that the next run reads.
+You now measure what Claude Code does today. No skill is needed: the baseline is Claude Code as installed, with the repository's own CLAUDE.md. Anything you've added to Claude Code for yourself is switched off for the runs: your personal add-ons (plugins, hooks, connections to other tools called MCP servers), your own instructions file, and the notes Claude Code saves between sessions (auto memory). The glossary in the workbook defines each one. Two reasons: everyone tests the same out-of-the-box Claude Code, and no run can read what an earlier run left behind.
 
 **Why isolation matters.** Anthropic has seen Claude gain an unfair advantage in its own evaluations by reading the git history of earlier trials. Three things guard against that here:
 
 1. Each run's clone stops at the case branch, so the fix isn't in its history.
 2. `eval-run-settings.json` turns on `permissions.blockReadsOutsideWorkingDirectories`. Without it, commands like `cat` can read `~/nw-foundation` (where the answers are) from inside a run. With it, Claude's own reads outside the run folder are refused. It does not cover programs the run starts: a test that Claude writes and then runs with `pytest` could still open a file outside the folder. So when you grade, read every new or changed test in the diff.
-3. Each run loads only the repository's own settings and CLAUDE.md, with hooks and auto memory off and nothing saved after the session. Plugins, hooks, and memory are where one run's results can reach the next, as notes it reads at start-up.
+3. Each run loads only the repository's own settings and CLAUDE.md, and saves nothing for a later run to find (the personal setup described above).
 
 ### 7.1 One run by hand (case P-01)
 
@@ -632,7 +644,7 @@ claude -p "$(cat ~/nw-foundation/eval-set/P-01/request.md)" \
 What the flags do:
 
 - `acceptEdits` lets Claude edit files without asking.
-- `--setting-sources project,local` reads only the repository's settings, not your `~/.claude/settings.json`, so your plugins and hooks don't run. `--strict-mcp-config` leaves out your MCP servers, and `--no-session-persistence` saves nothing for a later session to find. The settings file adds the rest: hooks and auto memory off, and your personal CLAUDE.md and rules skipped.
+- `--setting-sources project,local`, `--strict-mcp-config`, and `--no-session-persistence` switch off your personal setup and save nothing after the run; the settings file does the rest. If your organization signs you in through Amazon Bedrock, Google Cloud, or Microsoft Foundry, see the sign-in row in [Troubleshooting](#12-troubleshooting) first.
 - `--allowedTools` pre-approves the test command. Nobody answers prompts in a `-p` run, so anything else that would ask is denied.
 - `--output-format json` keeps the reply together with its cost and the model used.
 
@@ -689,7 +701,7 @@ The first run lists a denied tool (Read or Bash) and says it couldn't read the f
 
 Passing once is not passing every time. A case that passes three times in four passes all three of three runs only about 42% of the time, so each case gets three runs. `run-case.sh` does everything in 7.1 for N runs in parallel and prints rows to paste into the Runs tab.
 
-Take **two cases** (the workshop's standard load): P-01, to finish the case you started, and one that contrasts with it. Each case's `context.md` file holds the exact command to run it. To run **any case's stored command** in one go, use the two lines below, changing `P-04` to the case you want. (The first line is only needed in a new terminal window.)
+Take **two cases** (the workshop's standard load): P-01, to finish the case you started, and one that contrasts with it, such as P-04. Each case's `context.md` file holds the exact command to run it. To run **any case's stored command** in one go, use the two lines below, changing `P-04` to the case you want. (The first line is only needed in a new terminal window.)
 
 ```bash
 source ~/ccw5g/templates/start.sh
@@ -718,7 +730,7 @@ run-case.sh --case P-01 --repo ~/nw-foundation/northwind-shipments-api --branch 
 
 The script reuses P-01's clone from 7.1. For any other case, use the command from its `context.md` as it is: three runs, numbered 1 to 3.
 
-1. Paste the printed rows into the **Runs** tab. Select the copied text with your mouse in the terminal, copy it (`Cmd + C` on macOS, `Ctrl + Shift + C` in Linux or WSL), click cell **A** of the next empty row in the Runs tab (row 5 for your first), and paste (`Cmd/Ctrl + V`). Each value lands in its own column. The same rows are saved in `~/nw-foundation/eval-set/outputs/<case>-runs.tsv`, so you can open that file instead if selecting is awkward. The Verdict column is empty on purpose: you fill it in next.
+1. Paste the printed rows into the **Runs** tab. Select the copied text with your mouse in the terminal, copy it (`Cmd + C` on macOS, `Ctrl + Shift + C` in Linux or WSL), click cell **A** of the next empty row in the Runs tab (row 5 for your first), and paste (`Cmd/Ctrl + V`). Each value lands in its own column. The same rows are saved in `~/nw-foundation/eval-set/outputs/<case>-runs.tsv`, so you can open that file instead if selecting is awkward. The Verdict column is empty on purpose: you fill it in next. To open that file on WSL: `explorer.exe "$(wslpath -w ~/nw-foundation/eval-set/outputs)"` opens the folder.
 2. For each run, read its `.diff`, `.status`, and `.md` in `~/nw-foundation/eval-set/outputs/` (list them with `ls ~/nw-foundation/eval-set/outputs/`, open one with `less`, and press `q` to leave). Judge them against the case's Must include, Must not, and `note.md`, then type **Pass, Fail, or Can't tell** in the Verdict column. Passing tests are necessary, not sufficient. A run that edits a test to make it pass is a Fail.
 3. While one case runs, read the last one's diffs. That's where you'll notice the things a verdict misses: put them in **What we noticed**.
 
@@ -799,7 +811,7 @@ Things to watch on real code:
 
 ## 11. Clean up
 
-Everything the workshop created is in two folders in your home folder. **Copy your tracker somewhere else first if you want to keep it**, because it lives inside the second folder. Then delete both:
+Everything the workshop created is in two folders in your home folder. **Copy your tracker somewhere else first if you want to keep it**, because it lives inside the second folder. Then delete both: On WSL, `cp ~/nw-foundation/eval-set/foundation-evaluation-tracker.xlsx /mnt/c/Users/<you>/Documents/` copies it to your Windows Documents folder.
 
 ```bash
 rm -rf ~/nw-runs

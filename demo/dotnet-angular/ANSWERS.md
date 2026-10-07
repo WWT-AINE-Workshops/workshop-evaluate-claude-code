@@ -20,7 +20,7 @@ Your answers don't have to match word for word. What matters is whether a review
 
 | Criterion | Northwind Dispatch's target |
 |---|---|
-| Target-task pass rate | 80% |
+| Target-task pass rate, per task | 80% for each target task |
 | Share of cases passing every run | 50% |
 | Daily active users against assigned seats | 85% by week 4, from 75% in week 1 |
 | Pull requests with Claude Code | 60% by week 4, from 48% in week 1 |
@@ -44,11 +44,11 @@ The full files are in `~/nwd-foundation/eval-set/D-0N/` (or [eval-set/](eval-set
 | **D-05** | Review | Review pull request 250 against docs/review-checklist.md. Its change is the most recent commit on this branch. | Flags `GET /api/dispatches/export` for having no policy (customers download every customer's contact details), with file and line | Flagging `Csv.Field`'s leading apostrophe as a bug; style comments only | None | Reviewer judgment |
 | **D-06** | Review | Review this. | **Asks which pull request (250 or 251) before reviewing** | Picking a pull request without asking | A review of PR 251, posted without asking | Reviewer judgment. Should Claude ask first? **Yes** |
 
-What people most often miss:
+What people most often miss (the D-02 and D-04 points are the subject of Exercise 3: read them after you've calibrated):
 
 - **D-01:** forgetting *Must not: a 404 for a dispatch that exists*. PR 219 made the 500 go away and was still wrong.
-- **D-02:** trusting green CI. The weak fix updated its tests and they pass. Only a test that makes the earlier response arrive last shows the race.
-- **D-04:** writing Must include as "tests for the cancel endpoint". That lets tests that encode the bug pass (see §3).
+- **D-02 (read after Exercise 3):** trusting green CI. The weak fix updated its tests and they pass. Only a test that makes the earlier response arrive last shows the race.
+- **D-04 (read after Exercise 3):** writing Must include as "tests for the cancel endpoint". That lets tests that encode the bug pass (see §3).
 - **D-05:** not saying what must *not* be flagged. A reviewer who calls the formula-injection guard a bug is wrong, and the case should say so.
 - **D-06:** not having a question-first case at all. Knowing when to stop matters as much as doing the work.
 
@@ -56,7 +56,7 @@ What people most often miss:
 
 ## 3. Exercise 3: calibration
 
-Use these as **Grader B**. "Both domain experts?" is No: these cases are *Expert and presenter* until a second real expert confirms them.
+Use these as **Grader B**. "Both domain experts?" is No: these cases are *Expert and presenter* until a second real expert confirms them. The Grader B column shows the verdicts agreed after any rewrite. The story below the table describes the presenter's first verdict, before the case was rewritten.
 
 | Case | Output | Grader B verdict | Why |
 |---|---|---|---|
@@ -90,18 +90,19 @@ Your own runs will differ: that's the point of measuring. To practise reading a 
 
 How to read it:
 
-- **Overall pass rate: 67%** (12 of 18 runs). That number hides three different stories, so split it by task.
+- **Overall pass rate: 67%** (12 of 18 runs). That number hides three different stories, so split it by task: the exit criterion is judged per task for that reason.
 - **By task:** bug fixes **83%**, unit tests **50%**, pull request reviews **67%**.
 - **Consistency: 33%.** Two of the six cases passed every run (D-01, D-05). They're the first regression set.
 - **D-02 run 1 is the one to dwell on:** its own tests passed, CI would have been green, and the run still failed. Passing tests are necessary, not sufficient.
 - **D-05 passed every run, and D-06 failed two of three.** Claude Code reviews well when it knows *what* to review. The gap is in the brief, not the review.
 - **These runs leave personal setup out.** Many of this team's engineers have their own CLAUDE.md and skills, so their everyday results may be better or worse. To measure the team's shared setup, commit it to the repository and run the cases again.
+- **How much to trust it:** two cases and six runs per target task is a first look, not a verdict. One run more or less moves a task's rate by about 17 points. Treat a task that clears its target by a run or two as a candidate, and grow its cases toward the twenty to fifty Anthropic calls a strong start before the expansion is final.
 
 Likely fixes, as noted on the Decisions tab:
 
 | Failure | What it shows | Likely fix |
 |---|---|---|
-| D-02 run 1 | The review checklist says to cancel the previous request (`switchMap`), but CLAUDE.md doesn't, and the run never read the checklist | Ready to expand, with the RxJS rule added to CLAUDE.md, and a race test as the team's pattern for typeahead fixes |
+| D-02 run 1 | The review checklist says to cancel the previous request (`switchMap`), but CLAUDE.md doesn't, and the run never read the checklist | **Improve the brief or CLAUDE.md**: add the RxJS rule, and a race test as the team's pattern for typeahead fixes. The task itself still clears its target |
 | D-03 run 2, D-04 | Team standards Claude doesn't know: use the fixture, and test the access rule, not only the happy path | **Build a skill** |
 | D-06 | Context the engineer could have given: which pull request | **Improve the brief or CLAUDE.md**: say which pull request, or tell Claude to ask |
 
@@ -116,13 +117,15 @@ Likely fixes, as noted on the Decisions tab:
 | D-05 | Flags the export route in `api/Controllers/DispatchesController.cs` for having no policy, with a line number; the .diff is empty | Flags `Csv.Field`'s apostrophe as a bug; style comments, with the access check missed. In testing, real runs often named the file but not the line: decide in calibration whether your case requires the line, and say so in Must include |
 | D-06 | Asks which pull request, 250 or 251, and reviews nothing yet | Reviews either one without asking, however good the review |
 
+"Before overlay" and "after overlay" are how run-case reports a test-writing case: the tests Claude wrote, run first on the code as it was (before the fixed files are copied in), then with the fixed files overlaid.
+
 ---
 
 ## 5. Exercise 5: decisions
 
 | Target task | Decision | Why | Owner |
 |---|---|---|---|
-| Bug fix from a Jira issue | **Ready to expand** | Passed the criteria; one run debounced instead of cancelling the earlier request, so the RxJS rule goes into CLAUDE.md | Backend lead |
+| Bug fix from a Jira issue | **Ready to expand** | Reached its 80% target (83%); one run debounced instead of cancelling the earlier request, so the RxJS rule goes into CLAUDE.md as a follow-up | Backend lead |
 | Unit tests for changed code | **Build a skill** | Skips the team's fixture, and can test the happy path or assert the bug instead of the access rule | QA lead |
 | Pull request review against the checklist | **Improve the brief or CLAUDE.md** | Reviews accurately, but picks a pull request instead of asking which one | Staff engineer |
 
@@ -130,7 +133,7 @@ Exit criteria, measured against the targets set in Exercise 1:
 
 | Criterion | Target | Measured | Met? |
 |---|---|---|---|
-| Target-task pass rate | 80% | 67% | No |
+| Target-task pass rate, per task | 80% for each task | 1 of 3: bug fixes 83%, unit tests 50%, reviews 67% | No |
 | Share of cases passing every run | 50% | 33% | No |
 | Daily active users against assigned seats | 85% by week 4 | 83% | No |
 | Pull requests with Claude Code | 60% by week 4 | 58% | No |

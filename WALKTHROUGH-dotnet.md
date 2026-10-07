@@ -10,6 +10,8 @@ A step-by-step guide to **Claude Lab: Evaluate Claude Code on Your Own Work** fo
 **Time:** about 3 hours, the length of the workshop. Setup takes 15–30 minutes, most of it Docker and the first image build.
 **Cost:** Exercise 4 makes real Claude Code calls, billed to your organization's account. In testing, a practice run cost about $0.10 on Sonnet. Six runs (two cases, three runs each) is the workshop's standard load. Each run's JSON output reports its exact cost.
 
+**A word you'll see throughout: the *foundation*.** It's the first group of engineers and target tasks your organization uses to prove Claude Code before rolling it out more widely, which Anthropic calls a pilot group. This workshop measures what the foundation can hand to Claude Code.
+
 **What's different from the Python kit.** Every run happens in its own **Docker container that sees only that run's clone**, so nothing a run executes can reach the answers. Each run also leaves your personal Claude Code setup out, so the baseline is the same for everyone. [Section 7](#7-exercise-4-run-the-baseline) explains both.
 
 ## Contents
@@ -86,9 +88,9 @@ The first run compiles the check, which takes a few seconds. Each line starts wi
 
 ### 1.4 Create a credential for the runs
 
-Each run's container signs in on its own. Claude Code keeps the credential out of the commands it runs, but code that a run executes (a test Claude writes, for example) could still find it. So **use a credential you can revoke after the workshop**, billed to your organization as usual. Pick one:
+Each run's container signs in on its own, with a credential passed in through the environment. Be clear about what that means: **code a run executes can read the credential, and the container can reach the network.** A test Claude writes, or a package's install script, could find the token and send it anywhere. In testing, Claude Code removed the variable from the commands it ran, but test code could still read it from the running Claude process. So **use a credential you can cut off after the workshop**, billed to your organization as usual, and prefer the shortest-lived one your organization allows. Pick one:
 
-- **A setup-token on your own seat.** Run `claude setup-token`, sign in, and copy the token it prints. Then save it where the harness looks for it. Nothing appears while you paste:
+- **A setup-token on your own seat.** Run `claude setup-token`, sign in, and copy the token it prints. It is valid for one year. Claude Code's documentation doesn't describe revoking a single token, so if one leaks, tell your Claude administrator straight away. Then save it where the harness looks for it. Nothing appears while you paste:
 
   bash or zsh:
   ```bash
@@ -100,8 +102,10 @@ Each run's container signs in on its own. Claude Code keeps the credential out o
   New-Item -ItemType Directory -Force "$HOME\.config\ccw5g" | Out-Null
   $t = Read-Host -AsSecureString; [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($t)) | Set-Content -NoNewline "$HOME\.config\ccw5g\claude-oauth-token"; Remove-Variable t
   ```
-- **An API key** your administrator issues for the workshop, ideally in a workspace with a spend limit. Set `ANTHROPIC_API_KEY` in the terminal you run cases from.
-- **Your organization's Amazon Bedrock, Google Cloud, or Microsoft Foundry setup.** Set its variables in that terminal (for Bedrock: `CLAUDE_CODE_USE_BEDROCK=1`, `AWS_REGION`, and either `AWS_BEARER_TOKEN_BEDROCK` or access keys). A profile or SSO login in `~/.aws` isn't visible inside the container, so use keys or a Bedrock API key.
+- **An API key** your administrator issues for the workshop, in a Console workspace with a spend limit, which the administrator can disable afterwards. Set it in the terminal you run cases from: `export ANTHROPIC_API_KEY=…` in bash or zsh, `$env:ANTHROPIC_API_KEY = "…"` in PowerShell.
+- **Your organization's Amazon Bedrock, Google Cloud, or Microsoft Foundry setup.** Set its variables in that terminal. For Bedrock: `CLAUDE_CODE_USE_BEDROCK=1`, `AWS_REGION`, and **short-lived credentials** from your SSO login. `aws configure export-credentials --format env` (bash or zsh) or `--format powershell` (PowerShell) prints them, including `AWS_SESSION_TOKEN`, and they expire on their own. Your `~/.aws` profile isn't visible inside the container, so the credentials must be in the terminal's environment. If your organization pins models with `ANTHROPIC_MODEL` or `ANTHROPIC_DEFAULT_SONNET_MODEL` (for an inference profile), set those too: run-case passes them through.
+
+If more than one is set, the runs use the same order Claude Code does: a cloud provider, then `ANTHROPIC_AUTH_TOKEN`, then `ANTHROPIC_API_KEY`, then `CLAUDE_CODE_OAUTH_TOKEN`, then the token file. Every `run-case` prints the one it uses, as `Signing in with …`. Check it, especially if your terminal profile already sets an API key or Bedrock. On Windows, the token file sits in your profile folder, which only your account can read by default.
 
 Never paste a credential into a chat, a case, or a shared screen. The harness replaces any output file that contains it, and tells you to revoke it.
 
@@ -233,7 +237,7 @@ A good target task is work engineers do often, where a test or a reviewer can ju
 Then:
 
 1. For each task, write **What good output looks like** in one or two lines a reviewer would agree with. The repository's `CLAUDE.md`, `docs/review-checklist.md`, and `api.tests/DispatchApiFactory.cs` (in `$HOME/nwd-foundation/northwind-dispatch-portal`) are worth a look first.
-2. On the **Exit Criteria** tab, set a target for each criterion **before any result exists**. Northwind Dispatch's fictional week-1 analytics: 24 seats, 18 daily active users (75%), 48% of pull requests with Claude Code, and about $16 per developer per active day.
+2. On the **Exit Criteria** tab, set a target for each criterion **before any result exists**. The pass-rate target (row 5) applies to each target task separately. Northwind Dispatch's fictional week-1 analytics: 24 seats, 18 daily active users (75%), 48% of pull requests with Claude Code, and about $16 per developer per active day.
 
 - **Done when** three target tasks have a row each and every exit criterion has a target.
 - **Compare:** [ANSWERS.md §1](demo/dotnet-angular/ANSWERS.md#1-exercise-1-target-tasks-and-exit-criteria).
@@ -256,7 +260,7 @@ git show --stat pr-221-merged
 git diff nwd-212-base pr-221-merged
 ```
 
-Pull request 221 changes three files: the controller (one line), `api.tests/DispatchesTests.cs` (a new regression test), and `CHANGELOG.md`. In the graph from [1.7](#17-build-the-practice-repository): tags mark merged and weak pull requests, `pr-250` and `pr-251` are open pull requests, and each `case/D-0N` branch sits at the commit before its pull request.
+Pull request 221 changes three files: the controller (one line), `api.tests/DispatchesTests.cs` (a new regression test), and `CHANGELOG.md`. In the graph from [1.7](#17-build-the-practice-repository): tags mark merged and weak pull requests, `pr-250` and `pr-251` are open pull requests, and each `case/D-0N` branch sits at the commit before its pull request. The review cases are the exception: `case/D-05` sits on pull request 250 itself, and `case/D-06` on `main`, with both open pull requests copied in.
 
 | Pull request | Status | Jira issue or description | Approved or reviewed by |
 |---|---|---|---|
@@ -310,7 +314,7 @@ Four cases have both a reference output and a weak one: **D-01, D-02, D-04, and 
 
 You now measure what Claude Code does today. **The baseline is Claude Code as installed, with the repository's own CLAUDE.md and settings.** No skill is needed.
 
-**Set the model first.** `$HOME/nwd-foundation/eval-set/eval-run.json` names the model every run uses (`"sonnet"` by default). Set it to the model your team uses day to day, and keep it fixed for the whole evaluation. A fresh container otherwise uses your account's default, which may not be what your engineers use.
+**Set the model first.** `$HOME/nwd-foundation/eval-set/eval-run.json` names the model every run uses (`"sonnet"` by default). Set it to the model your team uses day to day, and keep it fixed for the whole evaluation. An alias such as `sonnet` moves to a newer model when Anthropic releases one, so for an evaluation that spans weeks, use the full model ID instead. On Bedrock, use the model or inference profile your account has enabled. A fresh container otherwise uses your account's default, which may not be what your engineers use.
 
 ### Why the runs are isolated this way
 
@@ -336,7 +340,7 @@ The first run compiles the harness, then:
 5. copies in the merged pull request's `api.tests/DispatchesTests.cs` and runs the API suite in a test container;
 6. prints one row for the Runs tab and removes the clone.
 
-It takes about a minute. The outputs are in `$HOME/nwd-foundation/eval-set/outputs/`:
+On macOS it takes about a minute. On Windows, expect longer for the first run: `npm ci` writes about 40,000 files through Docker's file sharing, and antivirus scanning slows that down. The outputs are in `$HOME/nwd-foundation/eval-set/outputs/`:
 
 | File | What it is |
 |---|---|
@@ -375,7 +379,7 @@ run-case --eval-set "$HOME/nwd-foundation/eval-set" --case D-02
 
 1. Paste the printed rows into the **Runs** tab (or open `outputs/<case>-runs.tsv`). The Verdict column is empty on purpose.
 2. Read each run's outputs and type **Pass, Fail, or Can't tell**. Passing tests are necessary, not sufficient: a run that edits a test to make it pass is a Fail.
-3. While one case runs, read the last one's diffs. Note what a verdict misses in **What we noticed**.
+3. While one case runs, read the last one's diffs in a second terminal window: `run-case` holds the one it runs in. Note what a verdict misses in **What we noticed**.
 
 - **Done when** each of your cases has three graded runs on the Runs tab.
 - **Going further:** run all six cases, 18 runs. In testing, runs cost $0.06 to $0.11 each, so that's around $1.50.
@@ -405,6 +409,8 @@ Open the **Summary** tab. It calculates everything from your Eval Cases, Runs, a
 
 **These results leave personal setup out.** If your engineers rely on their own CLAUDE.md, skills, or MCP servers, their everyday results may differ. To measure the team's shared setup, commit it to the repository on a branch, point the cases at that branch, and run them again. The difference is the setup's measured value.
 
+**How much six runs can tell you.** Two cases and six runs per target task is a first look, not a verdict: one run more or less moves a task's rate by about 17 points. Treat a task that clears its target by a run or two as a candidate, and grow its cases toward the twenty to fifty Anthropic calls a strong start before the expansion is final.
+
 **Compare:** [ANSWERS.md §4](demo/dotnet-angular/ANSWERS.md#4-reading-the-result) walks through a full, fictional set of 18 runs on these six cases.
 
 ---
@@ -422,7 +428,7 @@ Open the **Summary** tab. It calculates everything from your Eval Cases, Runs, a
 **After the workshop:**
 
 - Keep the cases that passed every run as the regression set. Re-run it before and after any change to CLAUDE.md, settings, a skill, a plugin, the Claude Code version (the image's version), or the model.
-- Tasks marked *Build a skill* go to **Workshop 2, Skills and Plugins for Engineering Teams**, with their cases as the baseline. Once skills ship in a plugin, **Workshop 5 · Established** moves the cases into `claude plugin eval`.
+- Tasks marked *Build a skill* go to **Workshop 2, Skills and Plugins for Engineering Teams**, with their cases as the baseline. Once skills ship in a plugin, **Workshop 5 · Established** moves the cases into `claude plugin eval`. Both are later sessions in WWT's Claude Code track: Workshop 2 builds and validates skills, and Workshop 5 · Established measures skills and plugins already in use.
 - Revoke the credential you used for the runs.
 
 ---
@@ -433,20 +439,19 @@ Everything above works the same on your own code. Your team prepares the inputs 
 
 | Northwind Dispatch (Track A) | Your repositories (Track B) |
 |---|---|
-| The bundle builds the history | Your Bitbucket repository; push a case branch at each pull request's commit before: `git push origin <commit before>:refs/heads/case/<ID>` |
+| The bundle builds the history | Your Bitbucket repository; push a case branch at each pull request's commit before: `git push origin <commit before>:refs/heads/case/<ID>`. Check first that a `case/*` branch won't start Bitbucket Pipelines or match a deployment rule; if it would, push the case branches to a fork |
 | `eval-set/D-0N/case.json` already written | Write one per case (below) |
 | `$HOME/nwd-foundation/eval-set` | Your team's `eval-set` folder, outside every repository |
 | The merged tests in the practice repository | `referenceRepo`: a full-history clone of your repository, kept **outside** `$HOME/eval-runs` |
 | Answer key in ANSWERS.md | Your domain experts, grading separately |
 | Fictional analytics | Your analytics dashboard (pre-work Step 4) |
 
-A `case.json` for a bug fix in your API:
+A `case.json` for a bug fix in your API, with a full-history clone of the repository in a `repos` folder beside the eval set (the reference files come from the same clone, so `referenceRepo` isn't needed):
 
 ```json
 {
   "case": "B-01",
-  "repo": "https://bitbucket.org/<workspace>/<repository>.git",
-  "referenceRepo": "../../repos/<repository>",
+  "repo": "../repos/<repository>",
   "branch": "case/B-01",
   "request": "request.md",
   "setup": "dotnet restore Your.sln && npm --prefix client ci",
@@ -457,12 +462,12 @@ A `case.json` for a bug fix in your API:
 }
 ```
 
-Paths in `case.json` are relative to the eval-set folder. For a test-writing case, put the fixed source files in `referenceFiles` and add `"checkBefore": true`. For a review case, leave out `setup` and `test`, and allow read-only git (`Bash(git log *)`, `Bash(git show *)`, `Bash(git diff *)`).
+Paths in `case.json` are relative to the eval-set folder. For a test-writing case, put the fixed source files in `referenceFiles` and add `"checkBefore": true`. For a review case, leave out `setup` and `test`, and allow read-only git (`Bash(git log *)`, `Bash(git show *)`, `Bash(git diff *)`). `repo` can be a clone URL, but a local full-history clone is faster: each run clones from it. For an "ask first" review case with several open pull requests, list their branches in `extraBranches`, and run-case copies them into each run's clone (as D-06 does).
 
 Things to watch on real code:
 
 - **Tests that need SQL Server, Redis, or other services** can't start them inside the run container, which has no Docker of its own. Pick pull requests whose tests run in memory (SQLite, EF's in-memory provider, fakes), or grade those cases by review. Never put live connection strings or secrets in a case.
-- **Private package feeds:** `setup` restores packages, so an internal NuGet or npm feed needs credentials inside the setup container. Prefer cases that restore from public feeds, or ask your WWT presenter about a feed token you can scope and revoke.
+- **Private package feeds** (CodeArtifact, Azure Artifacts, ProGet): give the credentials to the setup container only, never to Claude's. In `case.json`, `setupEnv` names environment variables to pass through, such as `"setupEnv": ["CODEARTIFACT_AUTH_TOKEN"]`. `setupFiles` mounts files read-only, such as `"setupFiles": {"nuget.config": "/home/runner/.nuget/NuGet/NuGet.Config"}` with the file kept in the eval set. Restored packages go to the shared package cache, which Claude's container reads but cannot change. If a run adds a new package, its restore fails without the feed: that's expected.
 - **AWS credentials stay out.** The containers don't see your `~/.aws`, so a run can't reach your AWS accounts. That's on purpose: keep it that way, and grade CloudFormation and infrastructure changes by review.
 - **Jira:** use the issue text as the request. If a failure shows Claude needed the issue's history or comments, that's evidence for *Add a tool or MCP server*.
 - **Large solutions:** use a `test` command that runs only the affected projects, and keep `allow` matching it.
@@ -497,6 +502,7 @@ Delete the `$HOME/nwd-foundation` and `$HOME/eval-runs` folders (`rm -rf` in bas
 | `--runs-dir must be outside the eval set` | Keep `$HOME/eval-runs` and the eval set apart, never one inside the other |
 | A row starts `CREDENTIAL FOUND IN OUTPUT` | Code in the run printed the credential. The file was replaced. **Revoke the credential now** and create a new one |
 | A run denies a test command | The command Claude ran doesn't match `allow` in `case.json`. Claude must use `npm --prefix web test`, not `cd web && npm test`: the read block refuses a `cd` it can't check |
-| First run of a case is slow | The first setup fills the package caches; later ones take seconds. The first `run-case` also compiles the harness |
+| First run of a case is slow | The first setup fills the package caches; later ones take seconds. The first `run-case` also compiles the harness. On Windows, file sharing into the containers and antivirus scanning add more |
+| The image build or a setup fails with a certificate or TLS error | A company proxy (such as Zscaler) is inspecting TLS. Ask your IT team for the proxy's root certificate, add it to Docker Desktop's trusted certificates, and add a `COPY` and `update-ca-certificates` step for it to `templates/eval-run.Dockerfile` |
 | Windows: `Filename too long` | `git config --global core.longpaths true` |
 | Tracker formulas show 0 or nothing | Choose **Enable Editing** in Excel; in other spreadsheets, recalculate |

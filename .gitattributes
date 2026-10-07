@@ -1,0 +1,11 @@
+# Line endings that must not change on checkout, on any OS. Git for Windows converts text to CRLF by default.
+*.sh            text eol=lf
+templates/run-case text eol=lf
+*.Dockerfile    text eol=lf
+*.cs            text eol=lf
+*.json          text eol=lf
+*.cmd           text eol=crlf
+*.bundle        binary
+*.xlsx          binary
+*.docx          binary
+*.pptx          binary

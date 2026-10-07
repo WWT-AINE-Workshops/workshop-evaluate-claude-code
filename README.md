@@ -50,12 +50,19 @@ Each walkthrough has two tracks:
 
 **For WALKTHROUGH-dotnet.md:** git, the .NET 10 SDK, Docker running Linux containers, about 8 GB of free disk, and a credential for the runs that you can revoke afterwards. No Python or Node is needed on your computer. Its [§1.1](WALKTHROUGH-dotnet.md#11-what-you-need) has the details. In testing, a practice run cost about $0.10.
 
-**Not sure what you have? Run the checker for your walkthrough.** It changes nothing and tells you exactly what to install:
+**Not sure what you have? Run the checker for your walkthrough.** It changes nothing and tells you exactly what to install. For WALKTHROUGH.md (in a terminal; on Windows, the Ubuntu window):
 
 ```bash
-bash templates/check-setup.sh
-dotnet run --file templates/check-setup.cs
+bash ~/ccw5g/templates/check-setup.sh
 ```
+
+For WALKTHROUGH-dotnet.md (PowerShell, bash, or zsh):
+
+```bash
+dotnet run --file "$HOME/ccw5g/templates/check-setup.cs"
+```
+
+Both assume you cloned this repository to `ccw5g` in your home folder, as the walkthroughs do.
 
 ## Good to know
 

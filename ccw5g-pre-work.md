@@ -12,7 +12,7 @@ Claude Code Adoption Bootcamps · Workforce AI Practice · Level: Intermediate �
 | Workshop length | 3 hours, virtual |
 | Level | Intermediate |
 | Prerequisites | No earlier workshop and no skills required. Merged pull requests for each target task, the repositories they were merged into, and at least one senior engineer or reviewer for the full session. |
-| Who completes it | One coordinator for the whole team, usually the foundation owner, with help from each target task's owner for Steps 2 and 3, and from a Claude administrator (an Admin or Owner) for Step 4. Every attendee completes Step 6 for themselves: the coordinator forwards it, with the two files from templates/, to each attendee. |
+| Who completes it | One coordinator for the whole team, usually the foundation owner, with help from each target task's owner for Steps 2 and 3, and from a Claude administrator (an Admin or Owner) for Step 4. Every attendee completes Step 6 for themselves: the coordinator shares the workshop repository with each attendee, which holds Step 6's instructions and the templates. |
 
 In this workshop your team turns work it has already merged into an evaluation set: a fixed list of engineering requests, each with a merged pull request as the standard, that you run against Claude Code to measure what it can take on today. That is the evidence for your expansion decision. The workshop cannot find your pull requests for you. This sheet is about collecting them, and the people who can judge them, so the three hours go on building and measuring rather than searching.
 
@@ -52,7 +52,7 @@ In this workshop your team turns work it has already merged into an evaluation s
 
 ### How to do it
 
-1. Create a folder called eval-set somewhere outside every git repository, for example in your documents folder or a team share.
+1. Create a folder called eval-set somewhere outside every git repository, for example in your home folder. On Windows, keep it inside WSL (your Ubuntu home folder), not on the Windows side or a network share, which the scripts handle badly. Each attendee who runs cases keeps their own copy, for their outputs.
 2. Save foundation-evaluation-tracker.xlsx and eval-run-settings.json in it, and create an empty outputs subfolder for the replies and diffs that runs produce.
 3. Inside eval-set, create one empty subfolder per pull request as you choose them in Step 3, named P-01, P-02, and so on.
 4. In the workshop, runs happen in a different folder, such as eval-runs in your home folder. Keep it apart from eval-set: never put one inside the other.
@@ -108,7 +108,7 @@ eval-set/P-02/   ...
 1. For each target task, pick two or three recent pull requests the team merged and was happy with, preferably ones that came from an issue and added or changed a test.
 2. In a clone, git rev-parse `<merged commit>`^ gives the commit before the pull request, where the merged commit is the merge or squash commit your Git host shows. If it was rebased in as several commits, use the parent of the first.
 3. Create a case branch at that commit and push it, so every attendee can clone it: git branch case/P-01 `<commit before>`, then git push origin case/P-01. In the workshop, each clone stops at this branch, so the merged fix is not in its history.
-4. Create a subfolder P-01, P-02, and so on for each, and save the files in the table below. git diff `<commit before>` `<merged commit>` > reference.diff saves the change; add --stat to list the files it touched.
+4. Create a subfolder P-01, P-02, and so on for each, and save the files in the table below. git diff --output=reference.diff `<commit before>` `<merged commit>` saves the change (use --output rather than >: in Windows PowerShell, > changes the file's encoding); git diff --stat lists the files it touched.
 5. Save any earlier Claude Code change for the same work that was reverted, reworked, or rejected as weak.diff, or as weak.md for a review or other prose. For a review case, save the review the team acted on as reference.md. Note any vague request that went wrong, such as "Review this" with two pull requests open: it becomes a case where Claude should ask first.
 6. Remove secrets and confidential data from every file, replacing each with a placeholder such as `<API_KEY>`. Confirm with the repository owner that the repository holds no live secrets at the commit before; if it does, choose another pull request.
 
@@ -139,7 +139,7 @@ eval-set/P-02/   ...
 
 ### Example
 
-> 20 seats; 7 daily active users in week 1 (35 percent), 9 now (45 percent). PRs with Claude Code: 9 percent. $1,100 over 100 developer active days: about $11 each.
+> 20 seats; 7 daily active users in week 1 (35 percent), 9 in week 2 (45 percent). PRs with Claude Code: 9 percent. $1,100 over 100 developer active days: about $11 each.
 
 **Done when.** The figures are written in the box below, or the box says Not available.
 
@@ -195,6 +195,7 @@ Backend lead: bug fix from a closed issue. QA lead: unit tests for changed code.
 
 | Term | What it means here |
 | --- | --- |
+| Foundation | The first group of engineers and target tasks an organization uses to prove Claude Code before rolling it out more widely. Anthropic calls it a pilot group. |
 | Target task | A kind of engineering work Claude Code is meant to take on first, such as bug fixes. |
 | Reference output | The merged pull request: the standard Claude Code is judged against. |
 | Commit before | The commit the pull request started from. Each case is replayed from it. |
@@ -215,7 +216,7 @@ No. The folder and the repositories stay with your team, and nothing is sent to 
 
 **What will the runs cost?**
 
-Each run is a real model call on your plan or API account. Expect about six runs per attendee in the session. Each run's output reports its cost, and the tracker records it. Anthropic's benchmark from enterprise deployments is about $13 per developer per active day.
+Each run is a real model call on your plan or API account. Expect about six runs per attendee in the session: in testing, a practice run cost about $0.40, so about $2.50 per attendee. Each run's output reports its cost, and the tracker records it. Anthropic's benchmark from enterprise deployments is about $13 per developer per active day.
 
 **Can we use Claude Code to find the pull requests?**
 
@@ -223,7 +224,7 @@ Yes, for searching, such as listing merged pull requests that closed an issue an
 
 ## Sharing what you prepared
 
-Nothing needs to be sent to WWT. Forward Step 6 and the two files from templates/ to every attendee, or share the workshop repository, which holds them all. Bring the tracker and the eval-set folder to the workshop on the coordinator's machine, ready to share on screen.
+Nothing needs to be sent to WWT. Share the workshop repository with every attendee: Step 6 and the templates are in it. Bring the tracker and the eval-set folder to the workshop on the coordinator's machine, ready to share on screen.
 
 ## Checklist
 

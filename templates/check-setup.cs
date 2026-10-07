@@ -103,7 +103,7 @@ if (live && fixes == 0)
         await Capture("docker", "build", "-q", "-t", image, "--build-arg", $"CLAUDE_VERSION={TestedClaudeVersion}", "-f", script, Path.GetDirectoryName(script)!);
     }
     var env = new Dictionary<string, string>();
-    foreach (var n in providers.Concat(["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "AWS_REGION", "AWS_DEFAULT_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID", "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE"]))
+    foreach (var n in providers.Concat(["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "AWS_REGION", "AWS_DEFAULT_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_PROJECT_ID", "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE", "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL"]))
         if (Environment.GetEnvironmentVariable(n) is { Length: > 0 } v) env[n] = v;
     if (fromEnv is null && File.Exists(tokenFile)) env["CLAUDE_CODE_OAUTH_TOKEN"] = File.ReadAllText(tokenFile).Trim();
     List<string> run = ["run", "--rm"];

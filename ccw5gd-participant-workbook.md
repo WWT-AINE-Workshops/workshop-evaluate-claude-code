@@ -39,14 +39,14 @@ Work directly in this document during the session. Each exercise matches a segme
 
 About 15 minutes. Complete the Target Tasks and Exit Criteria tabs in the tracker; use this page to draft if that is easier. Example row: Bug fix from a Jira issue | a regression test that fails before and passes after, and no unrelated changes | a change to the response schema | style comments only. Done when every target task has a row and every exit criterion has a target, before anyone has run a case.
 
-| Target task | Good enough to merge means | Never acceptable | Reviewer rework that is acceptable |
+| Target task | Owner (role) | What good output looks like: good enough to merge, and never acceptable | How often it happens |
 | --- | --- | --- | --- |
 |  |  |  |  |
 |  |  |  |  |
 |  |  |  |  |
 |  |  |  |  |
 
-**Target-task pass rate we need**
+**Pass rate each target task must reach**
 
 >
 
@@ -219,6 +219,11 @@ About 15 minutes, together on screen. Record a decision for each target task on 
 - Automatable grader: the part of the verdict a command can decide, usually the pull request's tests.
 - Week 1: the foundation's first week of use, the baseline for the adoption and cost targets.
 - Stuck: post the word stuck in chat during an exercise, and the presenter comes to you.
+- Personal setup: what each engineer adds to Claude Code for themselves, kept in their home folder: plugins, hooks, MCP servers, a personal CLAUDE.md, and auto memory. The evaluation runs leave it out, so everyone measures the same Claude Code and no run can read notes an earlier run left behind.
+- Plugin: a package of add-ons, such as skills and hooks, installed into Claude Code.
+- Hook: a command Claude Code runs automatically at a set moment, such as when a session starts.
+- MCP server: a connection that gives Claude Code tools for another system, such as an issue tracker.
+- Auto memory: notes Claude Code saves between sessions and reads back at the start of the next one.
 
 ### Further reading
 

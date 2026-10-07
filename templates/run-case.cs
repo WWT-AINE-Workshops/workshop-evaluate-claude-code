@@ -25,11 +25,18 @@
 // case.json keys: case, repo (path relative to the eval set, or a clone URL), branch, request, allow (the
 // --allowedTools rules), and optionally setup (runs before Claude, with network, e.g. restore and npm ci), test
 // (runs after Claude; leave it out for a review case), referenceRepo, referenceRef, referenceFiles (copied in from
-// the merged ref before the test), checkBefore (also run the test before copying them in), extraBranches.
+// the merged ref before the test), checkBefore (also run the test before copying them in), extraBranches (more
+// branches to copy into each run's clone, such as open pull requests for a review case), setupEnv (names of
+// environment variables, such as a package feed token, passed only to the setup container), and setupFiles (a map
+// of files to mount read-only, only into the setup container, such as {"nuget.config":
+// "/home/runner/.nuget/NuGet/NuGet.Config"}; paths relative to the eval set). Claude's container never sees setupEnv
+// or setupFiles.
 //
-// The credential reaches the containers through the environment, never on a command line. Claude Code keeps it
-// from the commands it runs, but code a run executes can still find it, so use one you can revoke after the
-// workshop. Any output file that contains it is replaced with a notice.
+// The credential reaches Claude's container through the environment, never on a command line. It is taken, in this
+// order Claude Code itself uses, from a cloud provider's variables, ANTHROPIC_AUTH_TOKEN, ANTHROPIC_API_KEY, or
+// CLAUDE_CODE_OAUTH_TOKEN in this terminal, then from the credential file; run-case prints which one it uses. Code a run executes can read the credential,
+// and the container can reach the network, so use one you can revoke after the workshop. Any output file that
+// contains it is replaced with a notice.
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -42,7 +49,8 @@ const string Header = "Case ID\tRun number\tDate\tRun by (role)\tClaude Code ver
 string[] passThrough = ["CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL",
     "CLAUDE_CODE_USE_BEDROCK", "AWS_REGION", "AWS_DEFAULT_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
     "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLOUD_ML_REGION",
-    "ANTHROPIC_VERTEX_PROJECT_ID", "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE"];
+    "ANTHROPIC_VERTEX_PROJECT_ID", "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_RESOURCE",
+    "ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL"];
 string[] secretNames = ["CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_FOUNDRY_API_KEY"];
 
@@ -84,6 +92,8 @@ async Task<int> Main(string[] argv)
     var refRepo = refRepoValue is null ? (isUrl ? null : repo) : Full(Path.Combine(evalSet, refRepoValue));
     var checkBefore = c["checkBefore"]?.GetValue<bool>() ?? false;
     var extra = c["extraBranches"]?.AsArray().Select(n => n!.GetValue<string>()).ToArray() ?? [];
+    var setupEnvNames = c["setupEnv"]?.AsArray().Select(n => n!.GetValue<string>()).ToArray() ?? [];
+    var setupFiles = c["setupFiles"]?.AsObject().Select(kv => (Host: Full(Path.Combine(evalSet, kv.Key)), Container: kv.Value!.GetValue<string>())).ToArray() ?? [];
     var runs = int.Parse(o.GetValueOrDefault("runs") ?? config["runs"]?.ToString() ?? "3");
     var start = int.Parse(o.GetValueOrDefault("start") ?? "1");
     if (runs < 1 || start < 1) throw new Fail("--runs and --start must be positive numbers");
@@ -134,7 +144,26 @@ async Task<int> Main(string[] argv)
     if (env.Count == 0 || !(env.ContainsKey("CLAUDE_CODE_OAUTH_TOKEN") || env.ContainsKey("ANTHROPIC_API_KEY") || env.ContainsKey("ANTHROPIC_AUTH_TOKEN")
         || env.ContainsKey("CLAUDE_CODE_USE_BEDROCK") || env.ContainsKey("CLAUDE_CODE_USE_VERTEX") || env.ContainsKey("CLAUDE_CODE_USE_FOUNDRY")))
         throw new Fail($"no credential for the runs. Save a claude setup-token in {credentialFile}, or set CLAUDE_CODE_OAUTH_TOKEN, ANTHROPIC_API_KEY, or your cloud provider's variables (see the walkthrough's setup).");
-    var secrets = secretNames.Where(env.ContainsKey).Select(n => env[n]).Where(s => s.Length >= 8).ToArray();
+    // Claude Code's own precedence: a cloud provider, then ANTHROPIC_AUTH_TOKEN, ANTHROPIC_API_KEY, CLAUDE_CODE_OAUTH_TOKEN.
+    var source = env.ContainsKey("CLAUDE_CODE_USE_BEDROCK") ? "Amazon Bedrock (CLAUDE_CODE_USE_BEDROCK in this terminal)"
+        : env.ContainsKey("CLAUDE_CODE_USE_VERTEX") ? "Google Cloud (CLAUDE_CODE_USE_VERTEX in this terminal)"
+        : env.ContainsKey("CLAUDE_CODE_USE_FOUNDRY") ? "Microsoft Foundry (CLAUDE_CODE_USE_FOUNDRY in this terminal)"
+        : env.ContainsKey("ANTHROPIC_AUTH_TOKEN") ? "ANTHROPIC_AUTH_TOKEN in this terminal"
+        : env.ContainsKey("ANTHROPIC_API_KEY") ? "ANTHROPIC_API_KEY in this terminal"
+        : Environment.GetEnvironmentVariable("CLAUDE_CODE_OAUTH_TOKEN") is { Length: > 0 } ? "CLAUDE_CODE_OAUTH_TOKEN in this terminal"
+        : $"the setup-token in {credentialFile}";
+    Console.Error.WriteLine($"Signing in with {source}.");
+
+    // Package feed credentials for the setup container only.
+    var setupEnv = new Dictionary<string, string>();
+    foreach (var n in setupEnvNames)
+    {
+        if (Environment.GetEnvironmentVariable(n) is { Length: > 0 } v) setupEnv[n] = v;
+        else throw new Fail($"case.json names {n} in setupEnv, but it is not set in this terminal");
+    }
+    foreach (var (hostFile, _) in setupFiles)
+        if (!File.Exists(hostFile)) throw new Fail($"case.json names {hostFile} in setupFiles, but it does not exist");
+    var secrets = secretNames.Where(env.ContainsKey).Select(n => env[n]).Concat(setupEnv.Values).Where(s => s.Length >= 8).ToArray();
 
     // The image, built once per Claude Code version from the Dockerfile next to this script.
     if (await Run("docker", ["image", "inspect", image]) != 0)
@@ -198,8 +227,9 @@ async Task<int> Main(string[] argv)
             await setupGate.WaitAsync();
             try
             {
-                setupOk = await Docker([name + "-setup", "-v", $"{dir}:/work", "-v", "ccw5g-nuget:/home/runner/.nuget/packages", "-v", "ccw5g-npm:/home/runner/.npm"],
-                    ["bash", "-c", setup], b + ".setup.txt", b + ".setup.txt", null, timeout) == 0;
+                setupOk = await Docker([name + "-setup", "-v", $"{dir}:/work", "-v", "ccw5g-nuget:/home/runner/.nuget/packages", "-v", "ccw5g-npm:/home/runner/.npm",
+                        .. setupFiles.SelectMany(m => new[] { "-v", $"{m.Host}:{m.Container}:ro" }), .. setupEnv.Keys.SelectMany(k => new[] { "-e", k })],
+                    ["bash", "-c", setup], b + ".setup.txt", b + ".setup.txt", setupEnv, timeout) == 0;
             }
             finally { setupGate.Release(); }
         }
